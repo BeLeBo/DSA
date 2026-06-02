@@ -1,1 +1,350 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>DSA MULTIPLAYER FINAL UPGRADED</title>
 
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #111;
+  overflow: hidden;
+}
+
+/* MAP */
+#map {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background-size: cover;
+  background-position: center;
+}
+
+/* TOKEN */
+.token {
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid white;
+  cursor: default;
+  background: lime;
+}
+
+/* PANEL */
+#panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(0,0,0,0.85);
+  padding: 10px;
+  width: 320px;
+  z-index: 999;
+  color: white;
+  font-size: 12px;
+}
+
+button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px;
+  cursor: pointer;
+}
+
+#log {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow: auto;
+  color: #00ff88;
+  font-size: 11px;
+}
+
+/* ROLE SCREEN */
+#roleSelect {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ROLE SELECT -->
+<div id="roleSelect">
+  <h2>Rolle wählen</h2>
+  <button onclick="setRole('dm')">👑 Meister</button>
+  <button onclick="setRole('player')">👤 Spieler</button>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <input type="file" id="fileInput">
+  <button onclick="uploadMap()">📤 MAP UPLOAD</button>
+
+  <hr>
+
+  <input type="file" id="tokenImageInput">
+  <button onclick="createToken()">➕ TOKEN ERSTELLEN</button>
+
+  <div id="log">READY...</div>
+</div>
+
+<div id="map"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+
+/* =========================
+   SUPABASE
+========================= */
+const SUPABASE_URL = "https://jlonorejtfhqxskmvucx.supabase.co";
+
+const SUPABASE_ANON_KEY =
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsb25vcmVqdGZocXhza212dWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDUwNDUsImV4cCI6MjA5NTk4MTA0NX0.dohIz32Ls2vHKep-Rzl8TWMaaeokrzmBYJmSkOHfVxw";
+
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+const GAME_ID = "60fd4970-0997-483b-8ce3-ef16e32af460";
+
+const map = document.getElementById("map");
+const logEl = document.getElementById("log");
+
+/* =========================
+   STATE
+========================= */
+let ROLE = null;
+let tokens = [];
+let dragging = null;
+let offsetX = 0;
+let offsetY = 0;
+
+function log(msg) {
+  console.log(msg);
+  logEl.innerText += "\n" + msg;
+}
+
+/* =========================
+   ROLE SYSTEM
+========================= */
+function setRole(role) {
+  ROLE = role;
+  document.getElementById("roleSelect").style.display = "none";
+
+  log("ROLE: " + role);
+
+  if (ROLE === "player") {
+    document.getElementById("panel").style.display = "none";
+  }
+}
+
+/* =========================
+   MAP LOAD
+========================= */
+async function loadLatestMap() {
+
+  const { data } = await client
+    .from("maps")
+    .select("*")
+    .eq("game_id", GAME_ID)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (data && data.length > 0) {
+    map.style.backgroundImage = `url(${data[0].image_url})`;
+  }
+}
+
+/* =========================
+   MAP UPLOAD
+========================= */
+async function uploadMap() {
+
+  if (ROLE !== "dm") return log("❌ nur Meister");
+
+  const file = document.getElementById("fileInput").files[0];
+  if (!file) return;
+
+  const fileName = Date.now() + "_" + file.name;
+
+  const { error } = await client.storage
+    .from("maps")
+    .upload(fileName, file);
+
+  if (error) return log("UPLOAD ERROR");
+
+  const { data } = client.storage
+    .from("maps")
+    .getPublicUrl(fileName);
+
+  await client.from("maps").insert({
+    game_id: GAME_ID,
+    image_url: data.publicUrl
+  });
+
+  log("✔ MAP UPLOADED");
+  loadLatestMap();
+}
+
+/* =========================
+   TOKEN CREATE (DM ONLY)
+========================= */
+async function createToken() {
+
+  if (ROLE !== "dm") return log("❌ nur Meister");
+
+  const file = document.getElementById("tokenImageInput").files[0];
+  if (!file) return log("❌ kein Bild");
+
+  const fileName = "token_" + Date.now() + "_" + file.name;
+
+  const { error: uploadError } = await client.storage
+    .from("maps")
+    .upload(fileName, file);
+
+  if (uploadError) return log("UPLOAD ERROR");
+
+  const { data } = client.storage
+    .from("maps")
+    .getPublicUrl(fileName);
+
+  const rect = map.getBoundingClientRect();
+
+  const x = rect.width / 2;
+  const y = rect.height / 2;
+
+  const { error } = await client
+    .from("tokens")
+    .insert({
+      game_id: GAME_ID,
+      x,
+      y,
+      image_url: data.publicUrl
+    });
+
+  if (error) return log("DB ERROR");
+
+  log("✔ TOKEN CREATED");
+}
+
+/* =========================
+   MAP SYNC
+========================= */
+client
+  .channel("maps-live")
+  .on("postgres_changes", {
+    event: "*",
+    schema: "public",
+    table: "maps"
+  }, () => loadLatestMap())
+  .subscribe();
+
+setInterval(loadLatestMap, 5000);
+
+/* =========================
+   TOKENS LOAD
+========================= */
+async function loadTokens() {
+
+  const { data } = await client
+    .from("tokens")
+    .select("*")
+    .eq("game_id", GAME_ID);
+
+  tokens = data || [];
+
+  renderTokens();
+}
+
+function renderTokens() {
+
+  document.querySelectorAll(".token").forEach(t => t.remove());
+
+  tokens.forEach(t => {
+
+    const el = document.createElement("div");
+    el.className = "token";
+
+    if (t.image_url) {
+      el.style.backgroundImage = `url(${t.image_url})`;
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+      el.style.backgroundColor = "transparent";
+    }
+
+    el.style.left = t.x + "px";
+    el.style.top = t.y + "px";
+
+    // DM ONLY DRAG
+    el.onmousedown = (e) => {
+
+      if (ROLE !== "dm") return;
+
+      dragging = t;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+    };
+
+    map.appendChild(el);
+  });
+}
+
+/* DRAG */
+document.addEventListener("mousemove", (e) => {
+
+  if (!dragging) return;
+
+  const rect = map.getBoundingClientRect();
+
+  dragging.x = e.clientX - rect.left - offsetX;
+  dragging.y = e.clientY - rect.top - offsetY;
+
+  renderTokens();
+});
+
+/* DROP */
+document.addEventListener("mouseup", async () => {
+
+  if (!dragging) return;
+
+  const t = dragging;
+  dragging = null;
+
+  await client
+    .from("tokens")
+    .update({
+      x: t.x,
+      y: t.y
+    })
+    .eq("id", t.id);
+});
+
+/* TOKEN SYNC */
+client
+  .channel("tokens-live")
+  .on("postgres_changes", {
+    event: "*",
+    schema: "public",
+    table: "tokens"
+  }, () => loadTokens())
+  .subscribe();
+
+/* START */
+loadTokens();
+loadLatestMap();
+
+</script>
+
+</body>
+</html>
