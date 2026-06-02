@@ -2,628 +2,450 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DSA Tisch – Online</title>
-
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<title>DSA Multiplayer FULL</title>
 
 <style>
-:root{
-  --ink:        #15110b;
-  --ink-2:      #1e1810;
-  --parchment:  #e9dcbf;
-  --parchment-2:#bdab85;
-  --gold:       #c9a227;
-  --gold-soft:  #8a7220;
-  --green:      #6fbf73;
-  --red:        #d96a5a;
-  --blue:       #6fa8d9;
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #111;
+  overflow: hidden;
 }
 
-*{ box-sizing:border-box; }
-
-body{
-  margin:0;
-  font-family:"Spectral", Georgia, serif;
-  color:var(--parchment);
-  background:
-    radial-gradient(120% 100% at 50% 0%, #20190f 0%, var(--ink) 60%, #0c0a07 100%);
-  overflow:hidden;
+/* MAP */
+#map {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+  background-size: cover;
+  background-position: center;
 }
 
-/* ===== MAP ===== */
-#map{
-  width:100vw;
-  height:100vh;
-  position:relative;
-  background-color:#0c0a07;
-  background-size:cover;
-  background-position:center;
-  touch-action:none;          /* damit Touch-Drag nicht scrollt */
+/* TOKEN */
+.token {
+  position: absolute;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  cursor: default;
+  overflow: hidden;
+  user-select: none;
+  box-shadow: 0 0 6px rgba(0,0,0,0.4);
 }
 
-/* optionales Raster über der Karte */
-#grid{
-  position:absolute; inset:0;
-  pointer-events:none;
-  display:none;
-  background-image:
-    linear-gradient(rgba(201,162,39,.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(201,162,39,.18) 1px, transparent 1px);
-  background-size:64px 64px;
-}
-#grid.on{ display:block; }
-
-/* ===== TOKEN ===== */
-.token{
-  position:absolute;
-  width:60px; height:60px;
-  margin:0;
-  border-radius:50%;
-  border:2px solid #fff;
-  background:var(--green);
-  background-size:cover;
-  background-position:center;
-  transform:translate(-50%,-50%);   /* Koordinate = Mittelpunkt */
-  cursor:grab;
-  box-shadow:0 4px 14px rgba(0,0,0,.6);
-  user-select:none;
-  overflow:hidden;
-}
-.token.selected{ outline:3px solid var(--gold); outline-offset:2px; }
-.token .name{
-  position:absolute;
-  top:100%; left:50%;
-  transform:translateX(-50%);
-  margin-top:4px;
-  font-size:11px;
-  font-family:"Cinzel", serif;
-  white-space:nowrap;
-  color:var(--parchment);
-  text-shadow:0 1px 3px #000, 0 0 6px #000;
-  pointer-events:none;
+/* PANEL */
+#panel {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 320px;
+  padding: 10px;
+  background: rgba(0,0,0,0.85);
+  color: white;
+  font-size: 12px;
+  z-index: 999;
 }
 
-/* ===== PANEL ===== */
-#panel{
-  position:absolute; top:14px; left:14px;
-  width:330px; max-height:calc(100vh - 28px);
-  overflow:auto;
-  z-index:999;
-  background:linear-gradient(180deg, rgba(30,24,16,.95), rgba(18,14,9,.95));
-  border:1px solid var(--gold-soft);
-  border-radius:8px;
-  box-shadow:0 0 0 1px rgba(0,0,0,.5), 0 12px 40px rgba(0,0,0,.6);
-  padding:14px;
+button {
+  width: 100%;
+  margin-top: 5px;
+  padding: 8px;
+  cursor: pointer;
 }
-#panel h3{
-  font-family:"Cinzel", serif;
-  font-size:13px; letter-spacing:.12em; text-transform:uppercase;
-  color:var(--gold);
-  margin:14px 0 8px;
-  border-bottom:1px solid rgba(201,162,39,.25);
-  padding-bottom:5px;
+
+#log {
+  margin-top: 10px;
+  max-height: 200px;
+  overflow: auto;
+  color: #00ff88;
+  white-space: pre-wrap;
 }
-#panel h3:first-child{ margin-top:0; }
 
-label{ font-size:12px; color:var(--parchment-2); display:block; margin:8px 0 3px; }
-
-input, select{
-  width:100%;
-  padding:7px 8px;
-  background:#0f0c07;
-  border:1px solid var(--gold-soft);
-  color:var(--parchment);
-  border-radius:4px;
-  font-family:inherit; font-size:13px;
+/* ROLE SCREEN */
+#roleSelect {
+  position: fixed;
+  inset: 0;
+  background: #111;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: white;
+  z-index: 9999;
 }
-input[type="file"]{ padding:5px; font-size:11px; }
-input[type="color"]{ height:34px; padding:3px; }
 
-button{
-  width:100%;
-  margin-top:8px;
-  padding:9px;
-  cursor:pointer;
-  font-family:"Cinzel", serif;
-  font-size:12px; letter-spacing:.06em;
-  color:var(--parchment);
-  background:linear-gradient(180deg, #2a2014, #1a140c);
-  border:1px solid var(--gold-soft);
-  border-radius:5px;
-  transition:.15s;
+/* =========================
+   TOKEN MENU (NEW UI)
+========================= */
+#tokenMenu {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 10000;
 }
-button:hover{ border-color:var(--gold); color:var(--gold); }
-button.gold{ background:linear-gradient(180deg,#caa330,#8a7220); color:#1a140c; border-color:var(--gold); }
-button.gold:hover{ filter:brightness(1.08); color:#1a140c; }
-button.danger{ border-color:#7a3a32; }
-button.danger:hover{ border-color:var(--red); color:var(--red); }
 
-.row{ display:flex; gap:6px; }
-.row > *{ flex:1; }
-.row3{ display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
-
-/* ===== LOG ===== */
-#log{
-  margin-top:8px;
-  max-height:230px; overflow:auto;
-  background:#0c0a06;
-  border:1px solid rgba(201,162,39,.2);
-  border-radius:5px;
-  padding:8px;
-  font-size:12px; line-height:1.5;
+#tokenMenuBox {
+  width: 260px;
+  padding: 15px;
+  background: #222;
+  color: white;
+  border-radius: 10px;
+  text-align: center;
 }
-.entry{ margin:0 0 6px; padding-bottom:6px; border-bottom:1px dashed rgba(201,162,39,.12); }
-.entry:last-child{ border:0; margin-bottom:0; }
-.entry .who{ font-family:"Cinzel",serif; color:var(--gold); font-size:11px; }
-.entry .dice{ font-size:15px; letter-spacing:2px; }
-.ok{ color:var(--green); } .bad{ color:var(--red); } .sys{ color:var(--parchment-2); font-style:italic; }
 
-/* ===== ROLLENWAHL ===== */
-#roleSelect{
-  position:fixed; inset:0; z-index:9999;
-  display:flex; flex-direction:column; justify-content:center; align-items:center;
-  gap:8px;
-  background:radial-gradient(80% 80% at 50% 30%, #221a0f, #0c0a06);
-  text-align:center;
+#tokenMenuBox button {
+  margin-top: 8px;
 }
-#roleSelect h1{
-  font-family:"Cinzel", serif; font-weight:700;
-  color:var(--gold); letter-spacing:.15em;
-  margin:0 0 4px; font-size:30px;
-}
-#roleSelect p{ color:var(--parchment-2); margin:0 0 18px; }
-#roleSelect .box{ width:300px; }
-#roleSelect input{ text-align:center; margin-bottom:10px; }
 
-.hidden{ display:none !important; }
+#sizeInput {
+  width: 100%;
+  margin-top: 10px;
+  padding: 6px;
+}
 </style>
 </head>
 
 <body>
 
-<!-- ===== ROLLENWAHL ===== -->
+<!-- ROLE SELECT -->
 <div id="roleSelect">
-  <h1>Das Schwarze Auge</h1>
-  <p>Wähle deinen Platz am Tisch</p>
-  <div class="box">
-    <input id="nameInput" placeholder="Dein Name / Heldenname" maxlength="24">
-    <button class="gold" onclick="setRole('dm')">👑 Meister</button>
-    <button onclick="setRole('player')">🛡️ Spieler</button>
+  <h2>Rolle wählen</h2>
+  <button onclick="setRole('dm')">👑 Meister</button>
+  <button onclick="setRole('player')">👤 Spieler</button>
+</div>
+
+<!-- PANEL -->
+<div id="panel">
+  <input type="file" id="mapFile">
+  <button onclick="uploadMap()">📤 MAP UPLOAD</button>
+
+  <hr>
+
+  <input type="file" id="tokenFile">
+  <button onclick="createToken()">➕ TOKEN ERSTELLEN</button>
+
+  <div id="log">READY...</div>
+</div>
+
+<!-- TOKEN MENU -->
+<div id="tokenMenu">
+  <div id="tokenMenuBox">
+    <h3>Token Aktion</h3>
+
+    <button onclick="menuResize()">📏 Größe ändern</button>
+    <button onclick="menuDelete()">🗑 Löschen</button>
+    <button onclick="closeMenu()">❌ Abbrechen</button>
+
+    <input id="sizeInput" type="number" placeholder="Neue Größe (40-200)">
   </div>
 </div>
 
-<!-- ===== PANEL ===== -->
-<div id="panel" class="hidden">
-
-  <!-- nur Meister -->
-  <div id="dmTools">
-    <h3>Karte</h3>
-    <input type="file" id="mapFile" accept="image/*">
-    <button class="gold" onclick="uploadMap()">📤 Karte hochladen</button>
-
-    <h3>Token erstellen</h3>
-    <input type="file" id="tokenFile" accept="image/*">
-    <label>Name</label>
-    <input id="tokenName" placeholder="z.B. Goblin, Alrik …">
-    <div class="row">
-      <div>
-        <label>Farbe</label>
-        <input type="color" id="tokenColor" value="#6fbf73">
-      </div>
-      <div>
-        <label>Größe (px)</label>
-        <input type="number" id="tokenSize" value="60" min="24" max="200">
-      </div>
-    </div>
-    <button onclick="createToken()">➕ Token platzieren</button>
-    <button class="danger" id="deleteBtn" onclick="deleteSelected()" disabled>🗑️ Ausgewähltes Token löschen</button>
-  </div>
-
-  <!-- für alle -->
-  <h3>Würfel</h3>
-  <div class="row3">
-    <button onclick="quickRoll(6)">W6</button>
-    <button onclick="quickRoll(20)">W20</button>
-    <button onclick="quickRoll(100)">W100</button>
-  </div>
-  <label>Frei würfeln (z.B. 2w6+3)</label>
-  <div class="row">
-    <input id="customDice" placeholder="2w6+3">
-    <button onclick="customRoll()">🎲</button>
-  </div>
-
-  <h3>Talentprobe (3W20)</h3>
-  <label>Eigenschaften (z.B. MU / KL / FF)</label>
-  <div class="row3">
-    <input id="eig1" type="number" value="12">
-    <input id="eig2" type="number" value="12">
-    <input id="eig3" type="number" value="12">
-  </div>
-  <div class="row">
-    <div><label>TaW / FW</label><input id="taw" type="number" value="6"></div>
-    <div><label>Erschwernis +/−</label><input id="mod" type="number" value="0"></div>
-  </div>
-  <button class="gold" onclick="talentRoll()">⚄ Probe würfeln</button>
-
-  <h3>Ansicht</h3>
-  <button onclick="toggleGrid()">▦ Raster ein/aus</button>
-
-  <h3>Verlauf</h3>
-  <div id="log"></div>
-</div>
-
-<div id="map">
-  <div id="grid"></div>
-</div>
+<div id="map"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 
-/* =========================================================
-   SUPABASE-KONFIGURATION  (unverändert von euch übernommen)
-========================================================= */
+/* =========================
+   SUPABASE
+========================= */
 const SUPABASE_URL = "https://jlonorejtfhqxskmvucx.supabase.co";
+
 const SUPABASE_ANON_KEY =
 "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsb25vcmVqdGZocXhza212dWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDUwNDUsImV4cCI6MjA5NTk4MTA0NX0.dohIz32Ls2vHKep-Rzl8TWMaaeokrzmBYJmSkOHfVxw";
 
-const client  = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 const GAME_ID = "60fd4970-0997-483b-8ce3-ef16e32af460";
 
-/* Sollen Spieler ihre eigenen Tokens auch bewegen dürfen?
-   true  = jeder darf alle Tokens schieben (entspanntes Spielen)
-   false = nur der Meister darf schieben (wie im Original)        */
-const PLAYERS_CAN_MOVE = true;
+const map = document.getElementById("map");
+const logEl = document.getElementById("log");
 
-/* =========================================================
+/* =========================
    STATE
-========================================================= */
-const mapEl  = document.getElementById("map");
-const gridEl = document.getElementById("grid");
-const logEl  = document.getElementById("log");
+========================= */
+let ROLE = null;
+let tokens = [];
+let dragging = null;
+let offsetX = 0;
+let offsetY = 0;
+let selectedToken = null;
 
-let ROLE      = null;     // "dm" | "player"
-let PLAYER    = "Held";   // angezeigter Name
-let tokens    = [];       // aktueller Datenstand aus der DB
-let selectedId= null;     // ausgewähltes Token (Meister)
-
-const tokenEls = new Map(); // id -> DOM-Element (für flüssiges Rendern)
-
-let drag = null;          // { id, startX, startY, startPercentX, startPercentY, moved }
-let lastBroadcast = 0;
-
-/* gemeinsamer Echtzeit-Kanal für Würfel + Live-Bewegung */
-const live = client.channel("live-" + GAME_ID, { config:{ broadcast:{ self:false } } });
-
-/* =========================================================
+/* =========================
    LOG
-========================================================= */
-function sys(msg){
-  const e = document.createElement("div");
-  e.className = "entry sys";
-  e.textContent = msg;
-  logEl.prepend(e);
+========================= */
+function log(msg) {
+  console.log(msg);
+  logEl.innerText += "\n" + msg;
 }
 
-/* =========================================================
-   ROLLENWAHL
-========================================================= */
-function setRole(role){
+/* =========================
+   ROLE
+========================= */
+function setRole(role) {
   ROLE = role;
-  const name = document.getElementById("nameInput").value.trim();
-  PLAYER = name || (role === "dm" ? "Meister" : "Spieler");
+  document.getElementById("roleSelect").style.display = "none";
+  log("ROLE: " + role);
 
-  document.getElementById("roleSelect").classList.add("hidden");
-  document.getElementById("panel").classList.remove("hidden");
-
-  /* Meister-Werkzeuge nur für den Meister zeigen –
-     Würfel & Verlauf bleiben für alle sichtbar           */
-  if(role !== "dm") document.getElementById("dmTools").classList.add("hidden");
-
-  sys(`Angemeldet als ${PLAYER} (${role === "dm" ? "Meister" : "Spieler"})`);
-}
-
-/* =========================================================
-   KARTE LADEN / HOCHLADEN
-========================================================= */
-async function loadMap(){
-  const { data } = await client
-    .from("maps").select("*")
-    .eq("game_id", GAME_ID)
-    .order("created_at", { ascending:false }).limit(1);
-
-  if(data && data.length){
-    const url = `url(${data[0].image_url})`;
-    if(mapEl.style.backgroundImage !== url) mapEl.style.backgroundImage = url;
+  if (ROLE === "player") {
+    document.getElementById("panel").style.display = "none";
   }
 }
 
-async function uploadMap(){
-  if(ROLE !== "dm") return sys("❌ Nur der Meister darf Karten laden.");
+/* =========================
+   TOKEN MENU
+========================= */
+function openMenu(token) {
+  if (ROLE !== "dm") return;
+
+  selectedToken = token;
+  document.getElementById("tokenMenu").style.display = "flex";
+}
+
+function closeMenu() {
+  selectedToken = null;
+  document.getElementById("tokenMenu").style.display = "none";
+}
+
+async function menuDelete() {
+
+  if (!selectedToken) return;
+
+  const ok = confirm("Token wirklich löschen?");
+  if (!ok) return;
+
+  await client.from("tokens")
+    .delete()
+    .eq("id", selectedToken.id);
+
+  log("🗑 TOKEN DELETED");
+  closeMenu();
+}
+
+async function menuResize() {
+
+  if (!selectedToken) return;
+
+  const input = document.getElementById("sizeInput");
+  const newSize = parseInt(input.value);
+
+  if (isNaN(newSize)) {
+    log("❌ Ungültige Größe");
+    return;
+  }
+
+  await client.from("tokens")
+    .update({ size: newSize })
+    .eq("id", selectedToken.id);
+
+  log("📏 SIZE UPDATED");
+  closeMenu();
+}
+
+/* =========================
+   MAP LOAD
+========================= */
+async function loadMap() {
+
+  const { data } = await client
+    .from("maps")
+    .select("*")
+    .eq("game_id", GAME_ID)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  if (data?.length) {
+    map.style.backgroundImage = `url(${data[0].image_url})`;
+  }
+}
+
+/* =========================
+   MAP UPLOAD
+========================= */
+async function uploadMap() {
+
+  if (ROLE !== "dm") return log("❌ no permission");
+
   const file = document.getElementById("mapFile").files[0];
-  if(!file) return sys("❌ Keine Datei gewählt.");
+  if (!file) return;
 
   const fileName = Date.now() + "_" + file.name;
-  const up = await client.storage.from("maps").upload(fileName, file);
-  if(up.error) return sys("❌ Upload-Fehler: " + up.error.message);
 
-  const { data } = client.storage.from("maps").getPublicUrl(fileName);
-  await client.from("maps").insert({ game_id:GAME_ID, image_url:data.publicUrl });
+  const { error } = await client.storage
+    .from("maps")
+    .upload(fileName, file);
 
-  sys("✔ Karte hochgeladen.");
+  if (error) return log(JSON.stringify(error));
+
+  const { data } = client.storage
+    .from("maps")
+    .getPublicUrl(fileName);
+
+  await client.from("maps").insert({
+    game_id: GAME_ID,
+    image_url: data.publicUrl
+  });
+
+  log("✔ MAP UPLOADED");
   loadMap();
 }
 
-/* =========================================================
-   TOKEN ERSTELLEN / LÖSCHEN
-========================================================= */
-async function createToken(){
-  if(ROLE !== "dm") return sys("❌ Nur der Meister darf Tokens erstellen.");
+/* =========================
+   TOKEN CREATE
+========================= */
+async function createToken() {
+
+  if (ROLE !== "dm") return log("❌ no permission");
+
   const file = document.getElementById("tokenFile").files[0];
+  if (!file) return;
 
-  let image_url = null;
-  if(file){
-    const fileName = "token_" + Date.now() + "_" + file.name;
-    const up = await client.storage.from("maps").upload(fileName, file);
-    if(up.error) return sys("❌ Upload-Fehler: " + up.error.message);
-    image_url = client.storage.from("maps").getPublicUrl(fileName).data.publicUrl;
-  }
+  const fileName = "token_" + Date.now() + "_" + file.name;
 
-  const row = {
+  const { error } = await client.storage
+    .from("maps")
+    .upload(fileName, file);
+
+  if (error) return log(JSON.stringify(error));
+
+  const { data } = client.storage
+    .from("maps")
+    .getPublicUrl(fileName);
+
+  const rect = map.getBoundingClientRect();
+
+  const { error: insertError } = await client.from("tokens").insert({
     game_id: GAME_ID,
-    x: 50, y: 50,                                   // Mitte (Prozent!)
-    image_url,
-    name:  document.getElementById("tokenName").value.trim() || null,
-    color: document.getElementById("tokenColor").value,
-    size:  Number(document.getElementById("tokenSize").value) || 60
-  };
+    x: rect.width / 2,
+    y: rect.height / 2,
+    size: 60,
+    image_url: data.publicUrl
+  });
 
-  const { error } = await client.from("tokens").insert(row);
-  if(error){
-    // Falls die Spalten name/color/size noch fehlen -> klarer Hinweis
-    sys("❌ DB-Fehler: " + error.message + "  (evtl. SQL-Spalten ergänzen, siehe Hinweis)");
-    return;
-  }
-  document.getElementById("tokenName").value = "";
-  sys("✔ Token platziert.");
+  if (insertError) return log(JSON.stringify(insertError));
+
+  log("✔ TOKEN CREATED");
 }
 
-async function deleteSelected(){
-  if(ROLE !== "dm" || !selectedId) return;
-  const id = selectedId;
-  selectedId = null;
-  document.getElementById("deleteBtn").disabled = true;
-  await client.from("tokens").delete().eq("id", id);
-  sys("✔ Token gelöscht.");
-}
+/* =========================
+   LOAD TOKENS
+========================= */
+async function loadTokens() {
 
-/* =========================================================
-   TOKENS LADEN & RENDERN  (mit Element-Cache = flüssig)
-========================================================= */
-async function loadTokens(){
-  const { data } = await client.from("tokens").select("*").eq("game_id", GAME_ID);
+  const { data, error } = await client
+    .from("tokens")
+    .select("*")
+    .eq("game_id", GAME_ID);
+
+  if (error) return log(JSON.stringify(error));
+
   tokens = data || [];
   renderTokens();
 }
 
-function renderTokens(){
-  const ids = new Set(tokens.map(t => String(t.id)));
+/* =========================
+   RENDER TOKENS
+========================= */
+function renderTokens() {
 
-  // entfernte Tokens aus dem DOM nehmen
-  for(const [id, el] of tokenEls){
-    if(!ids.has(id)){ el.remove(); tokenEls.delete(id); }
-  }
+  map.querySelectorAll(".token").forEach(t => t.remove());
 
-  tokens.forEach(t => {
-    const id = String(t.id);
-    let el = tokenEls.get(id);
-
-    if(!el){
-      el = document.createElement("div");
-      el.className = "token";
-      el.dataset.id = id;
-      attachDrag(el, t);
-      mapEl.appendChild(el);
-      tokenEls.set(id, el);
-    }
-
-    // Alt-Daten in Pixeln (>100) -> in die Mitte holen
-    if(t.x > 100 || t.y > 100){ t.x = 50; t.y = 50; }
-
-    // Position nicht überschreiben, wenn ich dieses Token gerade ziehe
-    if(!(drag && drag.id === id)){
-      el.style.left = t.x + "%";
-      el.style.top  = t.y + "%";
-    }
+  for (const t of tokens) {
 
     const size = t.size || 60;
+
+    const el = document.createElement("div");
+    el.className = "token";
+
     el.style.width = size + "px";
     el.style.height = size + "px";
-    el.style.background = t.image_url ? `center/cover no-repeat url(${t.image_url})`
-                                      : (t.color || "#6fbf73");
-    el.classList.toggle("selected", id === selectedId);
 
-    // Namensschild
-    let label = el.querySelector(".name");
-    if(t.name){
-      if(!label){ label = document.createElement("div"); label.className="name"; el.appendChild(label); }
-      label.textContent = t.name;
-    } else if(label){ label.remove(); }
-  });
-}
+    el.style.left = t.x + "px";
+    el.style.top = t.y + "px";
 
-/* =========================================================
-   DRAG & DROP  (Pointer-Events = Maus + Touch zugleich)
-========================================================= */
-function attachDrag(el, tokenRef){
-  el.addEventListener("pointerdown", (e) => {
-    const id = el.dataset.id;
-    const allowed = ROLE === "dm" || PLAYERS_CAN_MOVE;
-
-    // Meister: Klick wählt das Token aus (für Löschen)
-    if(ROLE === "dm"){
-      selectedId = id;
-      document.getElementById("deleteBtn").disabled = false;
-      renderTokens();
+    if (t.image_url) {
+      el.style.backgroundImage = `url("${t.image_url}")`;
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+      el.style.backgroundRepeat = "no-repeat";
+      el.style.backgroundColor = "transparent";
     }
-    if(!allowed) return;
 
-    const t = tokens.find(x => String(x.id) === id);
-    if(!t) return;
+    /* DRAG */
+    el.onmousedown = (e) => {
+      if (ROLE !== "dm") return;
+      dragging = t;
+      offsetX = e.offsetX;
+      offsetY = e.offsetY;
+    };
 
-    el.setPointerCapture(e.pointerId);
-    el.style.cursor = "grabbing";
-    drag = { id, startX:e.clientX, startY:e.clientY,
-             startPX:t.x, startPY:t.y, moved:false, ref:t };
-  });
+    /* RIGHT CLICK → MENU */
+    el.oncontextmenu = (e) => {
+      e.preventDefault();
+      if (ROLE !== "dm") return;
+      openMenu(t);
+    };
 
-  el.addEventListener("pointermove", (e) => {
-    if(!drag || drag.id !== el.dataset.id) return;
-    const rect = mapEl.getBoundingClientRect();
-
-    const dxPct = (e.clientX - drag.startX) / rect.width  * 100;
-    const dyPct = (e.clientY - drag.startY) / rect.height * 100;
-    if(Math.abs(e.clientX-drag.startX) > 3 || Math.abs(e.clientY-drag.startY) > 3) drag.moved = true;
-
-    const nx = Math.max(0, Math.min(100, drag.startPX + dxPct));
-    const ny = Math.max(0, Math.min(100, drag.startPY + dyPct));
-    drag.ref.x = nx; drag.ref.y = ny;
-    el.style.left = nx + "%"; el.style.top = ny + "%";
-
-    // Live-Bewegung an die anderen senden (gedrosselt ~30 fps)
-    const now = performance.now();
-    if(now - lastBroadcast > 33){
-      lastBroadcast = now;
-      live.send({ type:"broadcast", event:"move", payload:{ id:drag.id, x:nx, y:ny } });
-    }
-  });
-
-  const end = async (e) => {
-    if(!drag || drag.id !== el.dataset.id) return;
-    el.style.cursor = "grab";
-    const t = drag.ref;
-    const moved = drag.moved;
-    drag = null;
-    if(moved){
-      // Endposition dauerhaft speichern
-      await client.from("tokens").update({ x:t.x, y:t.y }).eq("id", t.id);
-    }
-  };
-  el.addEventListener("pointerup", end);
-  el.addEventListener("pointercancel", end);
+    map.appendChild(el);
+  }
 }
 
-/* =========================================================
-   WÜRFEL
-========================================================= */
-const d = (n) => Math.floor(Math.random()*n)+1;
+/* =========================
+   DRAG MOVE
+========================= */
+document.addEventListener("mousemove", (e) => {
 
-function broadcastRoll(html){
-  const payload = { who:PLAYER, html, time:Date.now() };
-  addRoll(payload);                                   // lokal sofort
-  live.send({ type:"broadcast", event:"roll", payload }); // an die anderen
-}
+  if (!dragging) return;
 
-function addRoll(p){
-  const e = document.createElement("div");
-  e.className = "entry";
-  e.innerHTML = `<span class="who">${escapeHtml(p.who)}</span> ${p.html}`;
-  logEl.prepend(e);
-}
+  const rect = map.getBoundingClientRect();
 
-function quickRoll(sides){
-  const r = d(sides);
-  broadcastRoll(`würfelt <b>W${sides}</b> → <span class="dice">${r}</span>`);
-}
+  dragging.x = e.clientX - rect.left - offsetX;
+  dragging.y = e.clientY - rect.top - offsetY;
 
-function customRoll(){
-  const expr = document.getElementById("customDice").value.trim().toLowerCase();
-  const m = expr.match(/^(\d*)w(\d+)([+-]\d+)?$/);
-  if(!m) return sys('❌ Format z.B.  2w6+3');
-  const count = Math.min(parseInt(m[1] || "1"), 50);
-  const sides = parseInt(m[2]);
-  const bonus = parseInt(m[3] || "0");
-  const rolls = Array.from({length:count}, () => d(sides));
-  const sum = rolls.reduce((a,b)=>a+b,0) + bonus;
-  broadcastRoll(`würfelt <b>${expr}</b> → [${rolls.join(", ")}]${bonus?` ${m[3]}`:""} = <span class="dice">${sum}</span>`);
-}
+  renderTokens();
+});
 
-/* DSA-Talentprobe: 3W20 gegen drei Eigenschaften, Punkte aus TaW/FW */
-function talentRoll(){
-  const eig = [ +document.getElementById("eig1").value,
-                +document.getElementById("eig2").value,
-                +document.getElementById("eig3").value ];
-  const taw = +document.getElementById("taw").value;
-  const mod = +document.getElementById("mod").value;   // + = Erschwernis
+/* =========================
+   DROP SAVE
+========================= */
+document.addEventListener("mouseup", async () => {
 
-  let pool = taw - mod;
-  let eff = [...eig];
-  if(pool < 0){ eff = eff.map(x => x + pool); pool = 0; } // Rest senkt die Eigenschaften
+  if (!dragging) return;
 
-  const rolls = [d(20), d(20), d(20)];
-  let remaining = pool;
-  rolls.forEach((r,i) => { if(r > eff[i]) remaining -= (r - eff[i]); });
+  const t = dragging;
+  dragging = null;
 
-  const ones = rolls.filter(r => r===1).length;
-  const twenties = rolls.filter(r => r===20).length;
+  await client.from("tokens")
+    .update({
+      x: t.x,
+      y: t.y,
+      size: t.size || 60
+    })
+    .eq("id", t.id);
+});
 
-  let res, cls;
-  if(ones >= 2)        { res = "✦ Kritischer Erfolg"; cls="ok"; }
-  else if(twenties>=2) { res = "✖ Patzer";            cls="bad"; }
-  else if(remaining>=0){ res = "Gelungen";            cls="ok"; }
-  else                 { res = "Misslungen";          cls="bad"; }
-
-  const tap = (cls==="ok") ? Math.min(Math.max(remaining,0), Math.max(taw,0)) : null;
-  const tapTxt = tap!==null ? ` (TaP* ${tap})` : "";
-
-  broadcastRoll(
-    `Probe ${eig.join("/")} TaW ${taw}${mod?` (Mod ${mod>0?"+":""}${mod})`:""} → ` +
-    `<span class="dice">${rolls.join(" ")}</span> · ` +
-    `<span class="${cls}">${res}${tapTxt}</span>`
-  );
-}
-
-function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-
-/* =========================================================
-   RASTER
-========================================================= */
-function toggleGrid(){ gridEl.classList.toggle("on"); }
-
-/* =========================================================
-   ECHTZEIT-SYNCHRONISATION
-========================================================= */
-// Karten- und Token-Änderungen aus der DB
-client.channel("maps-live")
-  .on("postgres_changes", { event:"*", schema:"public", table:"maps" }, loadMap)
+/* =========================
+   REALTIME
+========================= */
+client
+  .channel("tokens-live")
+  .on("postgres_changes", {
+    event: "*",
+    schema: "public",
+    table: "tokens"
+  }, () => loadTokens())
   .subscribe();
 
-client.channel("tokens-live")
-  .on("postgres_changes", { event:"*", schema:"public", table:"tokens" }, loadTokens)
-  .subscribe();
-
-// gemeinsamer Kanal: Würfel + Live-Bewegung
-live
-  .on("broadcast", { event:"roll" }, ({ payload }) => addRoll(payload))
-  .on("broadcast", { event:"move" }, ({ payload }) => {
-     if(drag && drag.id === String(payload.id)) return;  // mein eigenes Ziehen ignorieren
-     const t = tokens.find(x => String(x.id) === String(payload.id));
-     if(t){ t.x = payload.x; t.y = payload.y; }
-     const el = tokenEls.get(String(payload.id));
-     if(el){ el.style.left = payload.x + "%"; el.style.top = payload.y + "%"; }
-  })
-  .subscribe();
-
-/* leichter Fallback-Poll, falls Realtime mal hakt */
-setInterval(loadMap, 10000);
-
-/* =========================================================
+/* =========================
    START
-========================================================= */
-loadMap();
+========================= */
 loadTokens();
+loadMap();
+
 </script>
+
 </body>
 </html>
