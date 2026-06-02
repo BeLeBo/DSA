@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>DSA Stable Multiplayer</title>
+<title>DSA Multiplayer FULL</title>
 
 <style>
 body {
@@ -12,6 +12,7 @@ body {
   overflow: hidden;
 }
 
+/* MAP */
 #map {
   width: 100vw;
   height: 100vh;
@@ -29,8 +30,8 @@ body {
   border: 2px solid white;
   background: lime;
   cursor: default;
-  user-select: none;
   overflow: hidden;
+  user-select: none;
 }
 
 /* PANEL */
@@ -42,8 +43,8 @@ body {
   padding: 10px;
   background: rgba(0,0,0,0.85);
   color: white;
-  z-index: 999;
   font-size: 12px;
+  z-index: 999;
 }
 
 button {
@@ -78,7 +79,7 @@ button {
 
 <body>
 
-<!-- ROLE -->
+<!-- ROLE SELECT -->
 <div id="roleSelect">
   <h2>Rolle wählen</h2>
   <button onclick="setRole('dm')">👑 Meister</button>
@@ -88,12 +89,12 @@ button {
 <!-- PANEL -->
 <div id="panel">
   <input type="file" id="mapFile">
-  <button onclick="uploadMap()">📤 Map Upload</button>
+  <button onclick="uploadMap()">📤 MAP UPLOAD</button>
 
   <hr>
 
   <input type="file" id="tokenFile">
-  <button onclick="createToken()">➕ Token erstellen</button>
+  <button onclick="createToken()">➕ TOKEN ERSTELLEN</button>
 
   <div id="log">READY...</div>
 </div>
@@ -182,7 +183,7 @@ async function uploadMap() {
     .from("maps")
     .upload(fileName, file);
 
-  if (error) return log("UPLOAD ERROR");
+  if (error) return log(JSON.stringify(error));
 
   const { data } = client.storage
     .from("maps")
@@ -198,14 +199,14 @@ async function uploadMap() {
 }
 
 /* =========================
-   TOKEN CREATE (NEW STABLE)
+   TOKEN CREATE
 ========================= */
 async function createToken() {
 
   if (ROLE !== "dm") return log("❌ no permission");
 
   const file = document.getElementById("tokenFile").files[0];
-  if (!file) return log("❌ no image");
+  if (!file) return;
 
   const fileName = "token_" + Date.now() + "_" + file.name;
 
@@ -234,7 +235,7 @@ async function createToken() {
 }
 
 /* =========================
-   LOAD TOKENS (STABLE)
+   LOAD TOKENS
 ========================= */
 async function loadTokens() {
 
@@ -253,7 +254,7 @@ async function loadTokens() {
 }
 
 /* =========================
-   RENDER TOKENS (NO BUGS)
+   RENDER TOKENS + DELETE
 ========================= */
 function renderTokens() {
 
@@ -275,7 +276,11 @@ function renderTokens() {
       el.style.backgroundColor = "transparent";
     }
 
+    /* =========================
+       DRAG (DM ONLY)
+    ========================= */
     el.onmousedown = (e) => {
+
       if (ROLE !== "dm") return;
 
       dragging = t;
@@ -283,12 +288,38 @@ function renderTokens() {
       offsetY = e.offsetY;
     };
 
+    /* =========================
+       DELETE (DM ONLY)
+    ========================= */
+    el.oncontextmenu = async (e) => {
+
+      e.preventDefault();
+
+      if (ROLE !== "dm") return;
+
+      const ok = confirm("Token löschen?");
+
+      if (!ok) return;
+
+      const { error } = await client
+        .from("tokens")
+        .delete()
+        .eq("id", t.id);
+
+      if (error) {
+        log(JSON.stringify(error));
+        return;
+      }
+
+      log("🗑 TOKEN DELETED");
+    };
+
     map.appendChild(el);
   }
 }
 
 /* =========================
-   DRAG
+   DRAG MOVE
 ========================= */
 document.addEventListener("mousemove", (e) => {
 
@@ -313,7 +344,10 @@ document.addEventListener("mouseup", async () => {
   dragging = null;
 
   await client.from("tokens")
-    .update({ x: t.x, y: t.y })
+    .update({
+      x: t.x,
+      y: t.y
+    })
     .eq("id", t.id);
 });
 
