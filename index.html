@@ -12,6 +12,17 @@ body {
   overflow: hidden;
 }
 
+@keyframes shake {
+  0% { transform: translateX(-50%) translate(0px, 0px); }
+  25% { transform: translateX(-50%) translate(-1px, 1px); }
+  50% { transform: translateX(-50%) translate(1px, -1px); }
+  75% { transform: translateX(-50%) translate(-1px, -1px); }
+  100% { transform: translateX(-50%) translate(0px, 0px); }
+}
+
+.hp-shake {
+  animation: shake 0.2s infinite;
+}
 #map {
   width: 100vw;
   height: 100vh;
@@ -26,10 +37,25 @@ body {
   user-select: none;
 }
 
+
+
+.token-dead::after {
+  content: "✖";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 70px;
+  color: red;
+  font-weight: bold;
+  text-shadow: 0 0 10px black;
+  pointer-events: none;
+}
+
 /* 🆕 HP BAR STYLE */
 .hp-bar-container {
   position: absolute;
-  bottom: -14px;
+  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
   width: 60px;
@@ -145,7 +171,10 @@ button, input, select {
     <select id="ownerSelect">
       <option value="">Kein Spieler</option>
     </select>
-
+    <label>
+      <input type="checkbox" id="hasMana">
+      Hat magische Fähigkeiten
+    </label>
     <button onclick="createToken()">TOKEN ERSTELLEN</button>
   </div>
 
@@ -209,8 +238,8 @@ window.login = function () {
   document.getElementById("roleSelect").style.display = "none";
 
   if (ROLE !== "dm") {
-    document.getElementById("dmPanel").style.display = "none";
-  }
+  document.getElementById("panel").style.display = "none";
+}
 
   startGame();
 };
@@ -283,6 +312,7 @@ window.createToken = async function () {
 
   const type = document.getElementById("tokenType").value;
   const owner_id = document.getElementById("ownerSelect").value || null;
+  const hasMana = document.getElementById("hasMana").checked;
 
   const fileName = "token_" + Date.now() + "_" + file.name;
 
@@ -293,16 +323,21 @@ window.createToken = async function () {
   const rect = map.getBoundingClientRect();
 
   await client.from("tokens").insert({
-    game_id: GAME_ID,
-    x: rect.width / 2,
-    y: rect.height / 2,
-    size: 60,
-    hp_current: 10,
-    hp_max: 10,
-    token_type: type,
-    owner_id: owner_id,
-    image_url: url
-  });
+   game_id: GAME_ID,
+   x: rect.width / 2,
+   y: rect.height / 2,
+   size: 60,
+
+   hp_current: 10,
+   hp_max: 10,
+
+   mana_current: hasMana ? 20 : null,
+   mana_max: hasMana ? 20 : null,
+
+   token_type: type,
+   owner_id: owner_id,
+   image_url: url
+});
 };
 
 /* LOAD TOKENS */
@@ -313,6 +348,23 @@ async function loadTokens() {
 
   tokens = data || [];
   renderTokens();
+}
+
+function getHPDisplay(t) {
+
+  if (ROLE === "dm") {
+    return `${t.hp_current ?? 0}/${t.hp_max ?? 0}`;
+  }
+
+  // Spieler sehen nur grobe Infos
+  const percent = (t.hp_current / t.hp_max) * 100;
+
+  if (percent <= 0) return "☠️";
+  if (percent <= 20) return "sehr schwach";
+  if (percent <= 40) return "schwach";
+  if (percent <= 70) return "verletzt";
+  if (percent <= 90) return "leicht verletzt";
+  return "gesund";
 }
 
 /* RENDER TOKENS */
@@ -338,6 +390,8 @@ function renderTokens() {
     }
 
     const isOwner = (ROLE === "dm" || t.owner_id === PLAYER_ID);
+    const isPlayerToken = t.token_type === "player";
+    const isDead = (t.hp_current <= 0);
 
     el.onmousedown = (e) => {
       if (!isOwner) return;
@@ -352,37 +406,90 @@ function renderTokens() {
       openMenu(t);
     };
 
-    /* 🆕 BEAUTIFUL HP BAR */
-    const showHP = (ROLE === "dm") || (t.token_type === "player");
+    /* =========================
+       DEAD TOKEN
+    ========================= */
+    if (isDead) {
+      el.classList.add("token-dead");
+      map.appendChild(el);
+      continue;
+    }
 
-    if (showHP) {
+    /* =========================
+       HP BAR
+    ========================= */
+    const container = document.createElement("div");
+    container.className = "hp-bar-container";
 
-      const container = document.createElement("div");
-      container.className = "hp-bar-container";
+    const fill = document.createElement("div");
+    fill.className = "hp-bar-fill";
 
-      const fill = document.createElement("div");
-      fill.className = "hp-bar-fill";
+    const hpPercent = (t.hp_current / t.hp_max) * 100;
 
-      const percent = Math.max(0, Math.min(100, (t.hp_current / t.hp_max) * 100));
-      fill.style.width = percent + "%";
+    let displayPercent = hpPercent;
 
-      if (percent < 35) {
-        fill.style.background = "linear-gradient(90deg, #ff4444, #cc0000)";
-      }
+    if (ROLE !== "dm" && !isPlayerToken) {
+      if (hpPercent > 66) displayPercent = 100;
+      else if (hpPercent > 33) displayPercent = 66;
+      else if (hpPercent > 0) displayPercent = 33;
+      else displayPercent = 0;
+    }
 
-      const text = document.createElement("div");
-      text.className = "hp-bar-text";
-      text.innerText = `${t.hp_current ?? 0}/${t.hp_max ?? 0}`;
+    fill.style.width = displayPercent + "%";
 
-      container.appendChild(fill);
-      container.appendChild(text);
-      el.appendChild(container);
+    if (hpPercent < 35) {
+      fill.style.background = "linear-gradient(90deg,#ff4444,#cc0000)";
+    }
+
+    const text = document.createElement("div");
+    text.className = "hp-bar-text";
+
+    text.innerText =
+      ROLE === "dm"
+        ? `${t.hp_current}/${t.hp_max}`
+        : (displayPercent === 100 ? "voll"
+          : displayPercent === 66 ? "verletzt"
+          : displayPercent === 33 ? "stark verletzt"
+          : "kritisch");
+
+    container.appendChild(fill);
+    container.appendChild(text);
+    el.appendChild(container);
+
+    /* =========================
+       MANA BAR
+    ========================= */
+    if (t.mana_max != null && (ROLE === "dm" || isPlayerToken)) {
+
+      const manaContainer = document.createElement("div");
+      manaContainer.className = "hp-bar-container";
+      manaContainer.style.bottom = "-22px";
+
+      const manaFill = document.createElement("div");
+      manaFill.className = "hp-bar-fill";
+
+      const manaPercent =
+        Math.max(0, Math.min(100,
+        (t.mana_current / t.mana_max) * 100));
+
+      manaFill.style.width = manaPercent + "%";
+      manaFill.style.background = "linear-gradient(90deg,#33aaff,#0066ff)";
+
+      const manaText = document.createElement("div");
+      manaText.className = "hp-bar-text";
+      manaText.innerText = `${t.mana_current}/${t.mana_max}`;
+
+      manaContainer.appendChild(manaFill);
+      manaContainer.appendChild(manaText);
+
+      el.appendChild(manaContainer);
     }
 
     map.appendChild(el);
   }
 }
 
+   
 /* DRAG */
 document.addEventListener("mousemove", (e) => {
   if (!dragging) return;
@@ -438,6 +545,24 @@ function openMenu(token) {
       <input id="hpMaxInput" placeholder="Neue Max HP" style="width:90px;">
       <button onclick="updateHP()" style="width:40px;">✔</button>
     </div>
+    ${token.mana_max != null ? `
+
+    <div style="margin-top:12px;"><b>Mana</b></div>
+
+    <div style="display:flex; gap:5px; align-items:center; margin-bottom:6px;">
+      <span style="width:80px;">Aktuell: ${token.mana_current ?? 0}</span>
+      <input id="manaInput" placeholder="Neues Mana" style="width:90px;">
+      <button onclick="updateHP()" style="width:40px;">✔</button>
+    </div>
+
+    <div style="margin-bottom:10px;"><b>Max Mana</b></div>
+
+    <div style="display:flex; gap:5px; align-items:center;">
+      <span style="width:80px;">Aktuell: ${token.mana_max ?? 0}</span>
+      <input id="manaMaxInput" placeholder="Neues Max Mana" style="width:90px;">
+      <button onclick="updateHP()" style="width:40px;">✔</button>
+    </div>
+    ` : ""}
   `;
 }
 
@@ -507,8 +632,19 @@ window.updateHP = async function () {
   const hpInput = document.getElementById("hpInput")?.value;
   const hpMaxInput = document.getElementById("hpMaxInput")?.value;
 
+  const manaInput =
+    document.getElementById("manaInput")?.value;
+
+  const manaMaxInput =
+    document.getElementById("manaMaxInput")?.value;
+
   if (hpInput !== "") updates.hp_current = parseInt(hpInput);
   if (hpMaxInput !== "") updates.hp_max = parseInt(hpMaxInput);
+  if (manaInput !== "")
+    updates.mana_current = parseInt(manaInput);
+
+if (manaMaxInput !== "")
+  updates.mana_max = parseInt(manaMaxInput);
 
   if (Object.keys(updates).length === 0) return;
 
@@ -527,6 +663,14 @@ function setupRealtime() {
       schema: "public",
       table: "tokens"
     }, () => loadTokens())
+    .subscribe();
+
+  client.channel("maps-live")
+    .on("postgres_changes", {
+      event: "*",
+      schema: "public",
+      table: "maps"
+    }, () => loadMap())
     .subscribe();
 }
 
