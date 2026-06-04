@@ -2,27 +2,32 @@
 <html lang="de">
 <head>
 <meta charset="UTF-8">
-<title>DSA Multiplayer FINAL LOGIN</title>
-
+<title>DSA Multiplayer</title>
 <style>
+/* ── RESET & BASE ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
 body {
   margin: 0;
-  font-family: Arial;
+  font-family: 'Segoe UI', Arial, sans-serif;
   background: #111;
   overflow: hidden;
+  color: white;
 }
 
+/* ── ANIMATIONS ──────────────────────────────────────── */
 @keyframes shake {
-  0% { transform: translateX(-50%) translate(0px, 0px); }
-  25% { transform: translateX(-50%) translate(-1px, 1px); }
-  50% { transform: translateX(-50%) translate(1px, -1px); }
-  75% { transform: translateX(-50%) translate(-1px, -1px); }
-  100% { transform: translateX(-50%) translate(0px, 0px); }
+  0%,100% { transform: translateX(-50%) translate(0,0); }
+  25%      { transform: translateX(-50%) translate(-1px,1px); }
+  75%      { transform: translateX(-50%) translate(-1px,-1px); }
+}
+@keyframes fadeIn {
+  from { opacity:0; transform:translateY(-6px); }
+  to   { opacity:1; transform:translateY(0); }
 }
 
-.hp-shake {
-  animation: shake 0.2s infinite;
-}
+.hp-shake { animation: shake 0.2s infinite; }
+
+/* ── MAP ─────────────────────────────────────────────── */
 #map {
   width: 100vw;
   height: 100vh;
@@ -31,20 +36,22 @@ body {
   background-position: center;
 }
 
+/* ── TOKEN ───────────────────────────────────────────── */
 .token {
   position: absolute;
   border-radius: 50%;
   user-select: none;
+  cursor: grab;
+  transition: box-shadow 0.15s;
 }
-
-
+.token:hover { box-shadow: 0 0 0 2px rgba(255,255,255,0.5); }
+.token.dragging { cursor: grabbing; box-shadow: 0 0 0 3px #fff; opacity: 0.9; }
 
 .token-dead::after {
   content: "✖";
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
   font-size: 70px;
   color: red;
   font-weight: bold;
@@ -52,10 +59,9 @@ body {
   pointer-events: none;
 }
 
-/* 🆕 HP BAR STYLE */
-.hp-bar-container {
+/* ── HP / MANA BARS ──────────────────────────────────── */
+.bar-container {
   position: absolute;
-  bottom: -10px;
   left: 50%;
   transform: translateX(-50%);
   width: 60px;
@@ -64,56 +70,141 @@ body {
   border-radius: 4px;
   overflow: hidden;
 }
+.bar-container.hp   { bottom: -10px; }
+.bar-container.mana { bottom: -22px; }
 
-.hp-bar-fill {
+.bar-fill {
   height: 100%;
   width: 100%;
-  background: linear-gradient(90deg, #00ff66, #00cc44);
-  transition: width 0.2s ease;
+  transition: width 0.3s ease, background 0.3s ease;
 }
+.bar-fill.hp   { background: linear-gradient(90deg,#00ff66,#00cc44); }
+.bar-fill.hp.low  { background: linear-gradient(90deg,#ff4444,#cc0000); }
+.bar-fill.mana { background: linear-gradient(90deg,#33aaff,#0066ff); }
 
-.hp-bar-text {
+.bar-text {
   position: absolute;
-  bottom: -28px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 10px;
   color: white;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0,0,0,0.55);
   padding: 1px 4px;
   border-radius: 3px;
+  white-space: nowrap;
 }
+.bar-text.hp   { bottom: -28px; }
+.bar-text.mana { bottom: -40px; }
 
+/* ── SIDE PANEL ──────────────────────────────────────── */
 #panel {
   position: absolute;
-  top: 10px;
-  left: 10px;
-  width: 320px;
-  padding: 10px;
-  background: rgba(0,0,0,0.85);
-  color: white;
+  top: 10px; left: 10px;
+  width: 300px;
+  padding: 12px;
+  background: rgba(0,0,0,0.88);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 6px;
   font-size: 12px;
   z-index: 999;
+  animation: fadeIn 0.3s ease;
 }
+#panel h4 { margin: 0 0 8px; font-size: 13px; color: #aaa; text-transform: uppercase; letter-spacing: .05em; }
 
-button, input, select {
-  width: 100%;
-  margin-top: 5px;
+#panel hr { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 10px 0; }
+
+.row { display: flex; gap: 6px; margin-top: 6px; align-items: center; }
+
+input[type="text"], input[type="number"], input[type="password"], select {
+  flex: 1;
+  padding: 6px 8px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: white;
+  font-size: 12px;
+}
+select option {
+  background: #222;
+  color: white;
+}
+input[type="file"] {
+  flex: 1;
+  font-size: 11px;
+  color: #aaa;
+}
+input::placeholder { color: rgba(255,255,255,0.35); }
+
+button {
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+button:hover  { background: rgba(255,255,255,0.22); }
+button.danger { background: rgba(200,30,30,0.5); border-color: rgba(200,30,30,0.7); }
+button.danger:hover { background: rgba(200,30,30,0.8); }
+button:disabled { opacity: 0.4; cursor: default; }
+
+#log {
+  color: #00ff88;
+  white-space: pre-wrap;
+  max-height: 160px;
+  overflow-y: auto;
+  font-size: 11px;
+  margin-top: 8px;
+  background: rgba(0,255,100,0.04);
+  border: 1px solid rgba(0,255,100,0.1);
+  border-radius: 4px;
   padding: 6px;
 }
 
-#roleSelect {
+/* ── LOGIN SCREEN ────────────────────────────────────── */
+#loginScreen {
   position: fixed;
   inset: 0;
-  background: #111;
+  background: #0d0d0d;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   z-index: 9999;
-  color: white;
+  gap: 10px;
 }
+#loginScreen h2 {
+  font-size: 28px;
+  letter-spacing: .15em;
+  color: #c8a96e;
+  margin: 0 0 16px;
+}
+.login-btn {
+  width: 220px;
+  padding: 12px;
+  font-size: 15px;
+  background: rgba(255,255,255,0.07);
+  color: white;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  letter-spacing: .04em;
+}
+.login-btn:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.35); }
+.login-btn.dm {
+  background: rgba(200,169,110,0.15);
+  border-color: #c8a96e;
+  color: #c8a96e;
+  margin-top: 4px;
+}
+.login-btn.dm:hover { background: rgba(200,169,110,0.3); }
+.login-divider { width: 220px; border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 8px 0; }
 
+/* ── TOKEN MENU MODAL ────────────────────────────────── */
 #tokenMenu {
   position: fixed;
   inset: 0;
@@ -123,560 +214,1548 @@ button, input, select {
   align-items: center;
   z-index: 9999;
 }
-
 #tokenMenuBox {
-  background: #222;
-  padding: 15px;
-  width: 260px;
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 18px;
+  width: 280px;
+  animation: fadeIn 0.2s ease;
+}
+#tokenMenuBox h3 { margin: 0 0 12px; font-size: 14px; color: #c8a96e; }
+#menuContent label { display: block; font-size: 11px; color: #888; margin: 8px 0 2px; }
+#menuContent .stat-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+#menuContent .stat-current {
+  width: 70px;
+  font-size: 12px;
+  color: #ccc;
+}
+#menuContent input {
+  width: 80px;
+  flex: unset;
+}
+.menu-footer { display: flex; gap: 6px; margin-top: 14px; }
+.menu-footer button { flex: 1; }
+
+/* ── CHECKBOX ────────────────────────────────────────── */
+.checkbox-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 12px; color: #ccc; }
+.checkbox-row input[type="checkbox"] { width: auto; }
+
+/* ── DICE PANEL ──────────────────────────────────────── */
+#dicePanel {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  background: rgba(0,0,0,0.88);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  padding: 12px;
+  z-index: 998;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  min-width: 130px;
+}
+#dicePanel h4 {
+  margin: 0;
+  font-size: 11px;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  align-self: flex-start;
+}
+.dice-btn {
+  width: 100%;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 6px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.dice-btn:hover { background: rgba(255,255,255,0.16); }
+.dice-btn:active { transform: scale(0.95); }
+.dice-btn .dice-result {
+  font-size: 15px;
+  color: #c8a96e;
+  font-weight: bold;
+  min-width: 28px;
+  text-align: right;
+}
+.dice-btn .dice-result.crit   { color: #00ff88; }
+.dice-btn .dice-result.fumble { color: #ff4444; }
+
+@keyframes rollAnim {
+  0%   { transform: rotate(0deg) scale(1.2); }
+  50%  { transform: rotate(180deg) scale(0.9); }
+  100% { transform: rotate(360deg) scale(1); }
+}
+.rolling { animation: rollAnim 0.35s ease; }
+
+#diceToggle {
+  position: fixed;
+  bottom: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.88);
+  border: 1px solid rgba(255,255,255,0.15);
+  font-size: 22px;
+  color: white;
+  cursor: pointer;
+  z-index: 999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+}
+#diceToggle:hover { background: rgba(255,255,255,0.12); }
+/* ── PRESENCE ────────────────────────────────────────── */
+.presence-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #888;
+  padding: 2px 0;
+  transition: color 0.3s;
+}
+.presence-row.online { color: #ccc; }
+.presence-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #333;
+  flex-shrink: 0;
+  transition: background 0.3s;
+}
+.presence-row.online .presence-dot { background: #00ff88; box-shadow: 0 0 6px #00ff88; }
+
+
+/* ── PING ────────────────────────────────────────────── */
+.ping {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 900;
+  animation: pingAnim 1.2s ease-out forwards;
+}
+@keyframes pingAnim {
+  0%   { width: 10px; height: 10px; opacity: 1; box-shadow: 0 0 0 0 currentColor; }
+  60%  { width: 40px; height: 40px; opacity: 0.6; box-shadow: 0 0 0 12px transparent; }
+  100% { width: 60px; height: 60px; opacity: 0; }
+}
+
+
+/* ── STATUS EFFECTS ──────────────────────────────────── */
+
+/* Schlaf: ZZZ schwebt */
+@keyframes zzzFloat {
+  0%   { opacity:0; transform: translate(-50%, 0) scale(0.7); }
+  20%  { opacity:1; }
+  80%  { opacity:1; }
+  100% { opacity:0; transform: translate(-50%, -28px) scale(1.1); }
+}
+.effect-zzz {
+  position: absolute;
+  top: -28px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  pointer-events: none;
+  animation: zzzFloat 2s ease-in-out infinite;
+  z-index: 10;
+}
+.effect-zzz:nth-child(2) { animation-delay: 0.65s; left: 60%; font-size: 10px; }
+.effect-zzz:nth-child(3) { animation-delay: 1.3s;  left: 40%; font-size: 9px;  }
+
+/* Verwirrt: Sterne kreisen */
+@keyframes starOrbit {
+  from { transform: rotate(var(--start)) translateX(32px) rotate(calc(-1 * var(--start))); }
+  to   { transform: rotate(calc(var(--start) + 360deg)) translateX(32px) rotate(calc(-1 * (var(--start) + 360deg))); }
+}
+.effect-stars {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 0; height: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.effect-star {
+  position: absolute;
+  font-size: 12px;
+  animation: starOrbit 2s linear infinite;
+  transform-origin: 0 0;
+}
+
+/* Betrunken: Token wackelt */
+@keyframes drunkWobble {
+  0%,100% { transform: rotate(0deg); }
+  20%     { transform: rotate(-6deg); }
+  40%     { transform: rotate(5deg); }
+  60%     { transform: rotate(-4deg); }
+  80%     { transform: rotate(3deg); }
+}
+.effect-drunk { animation: drunkWobble 1.2s ease-in-out infinite; }
+
+/* Angst: Token zittert schnell */
+@keyframes fearShake {
+  0%,100% { transform: translate(0,0); }
+  20%     { transform: translate(-2px, 1px); }
+  40%     { transform: translate(2px,-1px); }
+  60%     { transform: translate(-1px, 2px); }
+  80%     { transform: translate(1px,-2px); }
+}
+.effect-fear { animation: fearShake 0.18s linear infinite; }
+
+/* Verliebt: Herzchen steigen auf */
+@keyframes heartRise {
+  0%   { opacity:0; transform: translateX(-50%) translateY(0) scale(0.5); }
+  20%  { opacity:1; }
+  80%  { opacity:0.6; }
+  100% { opacity:0; transform: translateX(-50%) translateY(-45px) scale(1.2); }
+}
+.effect-heart {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  font-size: 14px;
+  pointer-events: none;
+  animation: heartRise 2.4s ease-out infinite;
+  z-index: 10;
+}
+.effect-heart:nth-child(2) { animation-delay: 0.8s;  left: 35%; font-size: 11px; }
+.effect-heart:nth-child(3) { animation-delay: 1.6s;  left: 65%; font-size: 10px; }
+
+/* Effekt-Label */
+.effect-label {
+  position: absolute;
+  top: -42px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 18px;
+  pointer-events: none;
+  z-index: 11;
+}
+
+/* Status-Buttons im Menü */
+.status-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-top: 8px;
+}
+.status-btn {
+  padding: 6px 4px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: center;
+}
+.status-btn:hover  { background: rgba(255,255,255,0.18); }
+.status-btn.active { background: rgba(200,169,110,0.3); border-color: #c8a96e; }
+
+/* ── DICE CELEBRATION / FAIL ─────────────────────────── */
+#diceOverlay {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9000;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  width: 10px; height: 14px;
+  top: -20px;
+  border-radius: 2px;
+  animation: confettiFall linear forwards;
+}
+@keyframes confettiFall {
+  to { transform: translateY(110vh) rotate(720deg); opacity:0; }
+}
+.skull-fall {
+  position: absolute;
+  font-size: 30px;
+  top: -40px;
+  animation: skullFall 1.4s ease-in forwards;
+}
+@keyframes skullFall {
+  to { transform: translateY(110vh) rotate(-180deg); opacity:0; }
+}
+.dice-flash {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 8999;
+  opacity: 0;
+  animation: flashIn 0.5s ease-out forwards;
+}
+@keyframes flashIn {
+  0%  { opacity: 0.45; }
+  100%{ opacity: 0; }
+}
+.crit-banner, .fumble-banner {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.3);
+  font-size: 52px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  pointer-events: none;
+  z-index: 9001;
+  text-align: center;
+  animation: bannerPop 2s ease forwards;
+  text-shadow: 0 0 30px currentColor;
+  white-space: nowrap;
+}
+.crit-banner   { color: #00ff88; }
+.fumble-banner { color: #ff4444; }
+@keyframes bannerPop {
+  0%  { transform: translate(-50%,-50%) scale(0.3); opacity:0; }
+  15% { transform: translate(-50%,-50%) scale(1.15); opacity:1; }
+  25% { transform: translate(-50%,-50%) scale(1); }
+  75% { transform: translate(-50%,-50%) scale(1); opacity:1; }
+  100%{ transform: translate(-50%,-50%) scale(1.3); opacity:0; }
+}
+
+/* ── TOKEN INTERACTIONS ──────────────────────────────── */
+@keyframes tokenJump {
+  0%,100% { transform: translateY(0); }
+  30%     { transform: translateY(-22px) scale(1.1); }
+  60%     { transform: translateY(-8px); }
+}
+@keyframes tokenWave {
+  0%,100% { transform: rotate(0deg); transform-origin: bottom center; }
+  20%     { transform: rotate(-20deg); transform-origin: bottom center; }
+  50%     { transform: rotate(20deg); transform-origin: bottom center; }
+  80%     { transform: rotate(-10deg); transform-origin: bottom center; }
+}
+@keyframes tokenPingRing {
+  0%   { box-shadow: 0 0 0 0 rgba(255,255,255,0.8); }
+  100% { box-shadow: 0 0 0 30px rgba(255,255,255,0); }
+}
+.token-jump { animation: tokenJump 0.55s ease; }
+.token-wave { animation: tokenWave 0.7s ease; }
+.token-ping-ring { animation: tokenPingRing 0.6s ease-out; }
+.wave-emoji {
+  position: absolute;
+  top: -28px; left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  pointer-events: none;
+  animation: waveEmojiPop 0.7s ease forwards;
+  z-index: 20;
+}
+@keyframes waveEmojiPop {
+  0%   { opacity:0; transform: translateX(-50%) scale(0.4) translateY(6px); }
+  40%  { opacity:1; transform: translateX(-50%) scale(1.2) translateY(0); }
+  70%  { opacity:1; transform: translateX(-50%) scale(1) translateY(-4px); }
+  100% { opacity:0; transform: translateX(-50%) scale(0.8) translateY(-10px); }
+}
+
+/* ── WEATHER & DAY/NIGHT ─────────────────────────────── */
+#weatherLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 500;
+  overflow: hidden;
+}
+#dayNightLayer {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 499;
+  transition: background 2s ease;
+}
+.raindrop {
+  position: absolute;
+  width: 2px;
+  border-radius: 2px;
+  background: rgba(174,214,241,0.7);
+  top: -20px;
+  animation: rainFall linear infinite;
+}
+@keyframes rainFall {
+  to { transform: translateY(110vh) translateX(-30px); }
+}
+.snowflake {
+  position: absolute;
+  top: -20px;
+  font-size: 14px;
+  animation: snowFall linear infinite;
+  opacity: 0.85;
+}
+@keyframes snowFall {
+  to { transform: translateY(110vh) translateX(40px) rotate(360deg); }
+}
+.fogLayer {
+  position: absolute;
+  inset: 0;
+  background: rgba(200,200,200,0.25);
+  backdrop-filter: blur(3px);
+}
+.lightning-flash {
+  position: fixed;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 501;
+  animation: lightningBolt 0.15s ease-out forwards;
+}
+@keyframes lightningBolt {
+  0%  { opacity: 0.7; }
+  100%{ opacity: 0; }
+}
+
+/* ── WEATHER PANEL (DM) ──────────────────────────────── */
+#weatherPanel {
+  margin-top: 10px;
+}
+.weather-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  margin-top: 6px;
+}
+.weather-btn {
+  padding: 6px 2px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 5px;
+  color: white;
+  cursor: pointer;
+  transition: background 0.15s;
+  text-align: center;
+}
+.weather-btn:hover  { background: rgba(255,255,255,0.18); }
+.weather-btn.active { background: rgba(200,169,110,0.35); border-color: #c8a96e; }
+.daynight-row {
+  display: flex;
+  gap: 5px;
+  margin-top: 6px;
+}
+.daynight-row button { flex: 1; }
+
+/* ── PRESET MODAL ────────────────────────────────────── */
+#presetModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
+#presetBox {
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 8px;
+  padding: 20px;
+  width: 360px;
+  max-height: 80vh;
+  overflow-y: auto;
+  animation: fadeIn 0.2s ease;
   color: white;
 }
-
-#log {
-  color: #00ff88;
-  white-space: pre-wrap;
-  max-height: 200px;
-  overflow: auto;
+#presetBox h3 { margin: 0 0 14px; color: #c8a96e; font-size: 15px; }
+#presetList { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.preset-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 5px;
 }
+.preset-item span { flex: 1; font-size: 13px; }
+.preset-item button { padding: 4px 8px; font-size: 11px; }
+.preset-empty { color: #555; font-size: 12px; text-align: center; padding: 16px; }
+#presetSaveName {
+  flex: 1;
+  padding: 7px 10px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 4px;
+  color: white;
+  font-size: 13px;
+}
+#presetSaveName::placeholder { color: rgba(255,255,255,0.3); }
 </style>
 </head>
-
 <body>
 
 <!-- LOGIN -->
-<div id="roleSelect">
-  <h2>DSA LOGIN</h2>
-  <p>Spieler: Leomar / Valariel / Hesindian / Romoxosch / Angrondt</p>
-
-  <input id="codeInput" placeholder="Codewort">
-  <button onclick="login()">LOGIN</button>
-  <p id="loginError" style="color:red;"></p>
+<div id="loginScreen">
+  <h2>⚔ DSA</h2>
+  <button class="login-btn" onclick="loginAs('Leomar')">Leomar</button>
+  <button class="login-btn" onclick="loginAs('Valariel')">Valariel</button>
+  <button class="login-btn" onclick="loginAs('Hesindian')">Hesindian</button>
+  <button class="login-btn" onclick="loginAs('Romoxosch')">Romoxosch</button>
+  <button class="login-btn" onclick="loginAs('Angrondt')">Angrondt</button>
+  <hr class="login-divider">
+  <button class="login-btn dm" onclick="loginAs('Meister67')">⚙ Meister</button>
 </div>
 
-<!-- PANEL -->
-<div id="panel">
-  <input type="file" id="mapFile">
-  <button onclick="uploadMap()">MAP UPLOAD</button>
+<!-- DM PANEL -->
+<div id="panel" style="display:none">
+  <h4>🗺 Karte</h4>
+  <div class="row">
+    <input type="file" id="mapFile" accept="image/*">
+    <button onclick="uploadMap()" id="mapUploadBtn">Hochladen</button>
+  </div>
 
   <hr>
 
-  <div id="dmPanel">
-    <input type="file" id="tokenFile">
-
+  <h4>🪙 Token erstellen</h4>
+  <div class="row">
+    <input type="file" id="tokenFile" accept="image/*">
+  </div>
+  <div class="row">
     <select id="tokenType">
       <option value="player">Spieler</option>
       <option value="npc">NPC</option>
       <option value="enemy">Gegner</option>
     </select>
-
     <select id="ownerSelect">
       <option value="">Kein Spieler</option>
     </select>
-    <label>
-      <input type="checkbox" id="hasMana">
-      Hat magische Fähigkeiten
-    </label>
-    <button onclick="createToken()">TOKEN ERSTELLEN</button>
+  </div>
+  <div class="checkbox-row">
+    <input type="checkbox" id="hasMana">
+    <span>Hat magische Fähigkeiten</span>
+  </div>
+  <div class="row">
+    <button onclick="createToken()" id="createTokenBtn">Token erstellen</button>
   </div>
 
-  <div id="log">READY</div>
+  <hr>
+  <hr>
+  <h4>👥 Spieler online</h4>
+
+  <hr>
+  <h4>🌦 Wetter &amp; Zeit</h4>
+  <div class="daynight-row">
+    <button class="weather-btn" id="btn-day"   onclick="setDayNight('day')">☀️ Tag</button>
+    <button class="weather-btn" id="btn-dusk"  onclick="setDayNight('dusk')">🌅 Dämm.</button>
+    <button class="weather-btn" id="btn-night" onclick="setDayNight('night')">🌙 Nacht</button>
+  </div>
+  <div class="weather-grid">
+    <button class="weather-btn" id="wbtn-clear" onclick="setWeather('clear')">☀️ Klar</button>
+    <button class="weather-btn" id="wbtn-rain"  onclick="setWeather('rain')">🌧️ Regen</button>
+    <button class="weather-btn" id="wbtn-storm" onclick="setWeather('storm')">⛈️ Sturm</button>
+    <button class="weather-btn" id="wbtn-snow"  onclick="setWeather('snow')">❄️ Schnee</button>
+    <button class="weather-btn" id="wbtn-fog"   onclick="setWeather('fog')">🌫️ Nebel</button>
+    <button class="weather-btn" id="wbtn-none"  onclick="setWeather('none')">✖ Aus</button>
+  </div>
+  <hr>
+  <h4>📋 Szenen-Presets</h4>
+  <div class="row">
+    <input id="presetSaveName" placeholder="Preset-Name…">
+    <button onclick="savePreset()">💾 Speichern</button>
+  </div>
+  <div class="row" style="margin-top:4px;">
+    <button onclick="openPresetModal()" style="width:100%">📂 Presets laden…</button>
+  </div>
+
+  <div id="presenceList" style="display:flex;flex-direction:column;gap:4px;"></div>
+
+  <div id="log">BEREIT</div>
 </div>
 
 <!-- TOKEN MENU -->
 <div id="tokenMenu">
   <div id="tokenMenuBox">
-    <h3>Token Menü</h3>
+    <h3>⚙ Token</h3>
     <div id="menuContent"></div>
-    <button onclick="closeMenu()">Schließen</button>
+    <div class="menu-footer">
+      <button onclick="saveAndClose()">✔ Speichern</button>
+      <button onclick="closeMenu()">Schließen</button>
+    </div>
   </div>
 </div>
+
+
+<!-- WÜRFEL -->
+<button id="diceToggle" onclick="toggleDice()">🎲</button>
+
+<div id="dicePanel">
+  <h4>🎲 Würfel</h4>
+  <button class="dice-btn" onclick="roll(20, this)" id="w20btn">
+    <span>W20</span><span class="dice-result" id="r20">–</span>
+  </button>
+  <button class="dice-btn" onclick="roll(12, this)" id="w12btn">
+    <span>W12</span><span class="dice-result" id="r12">–</span>
+  </button>
+  <button class="dice-btn" onclick="roll(10, this)" id="w10btn">
+    <span>W10</span><span class="dice-result" id="r10">–</span>
+  </button>
+  <button class="dice-btn" onclick="roll(8, this)" id="w8btn">
+    <span>W8</span><span class="dice-result" id="r8">–</span>
+  </button>
+  <button class="dice-btn" onclick="roll(6, this)" id="w6btn">
+    <span>W6</span><span class="dice-result" id="r6">–</span>
+  </button>
+  <button class="dice-btn" onclick="roll(4, this)" id="w4btn">
+    <span>W4</span><span class="dice-result" id="r4">–</span>
+  </button>
+</div>
+
+
+<!-- PRESET MODAL -->
+<div id="presetModal">
+  <div id="presetBox">
+    <h3>📋 Szenen-Presets</h3>
+    <div id="presetList"></div>
+    <button onclick="closePresetModal()" style="width:100%;margin-top:4px;">Schließen</button>
+  </div>
+</div>
+
+<div id="diceOverlay"></div>
+<div id="dayNightLayer"></div>
+<div id="weatherLayer"></div>
 
 <div id="map"></div>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
-
 document.addEventListener("DOMContentLoaded", () => {
 
-const SUPABASE_URL = "https://jlonorejtfhqxskmvucx.supabase.co";
-const SUPABASE_ANON_KEY =
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsb25vcmVqdGZocXhza212dWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDUwNDUsImV4cCI6MjA5NTk4MTA0NX0.dohIz32Ls2vHKep-Rzl8TWMaaeokrzmBYJmSkOHfVxw";
+/* ── CONFIG ──────────────────────────────────────────── */
+const SUPABASE_URL     = "https://jlonorejtfhqxskmvucx.supabase.co";
+const SUPABASE_ANON_KEY= "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Impsb25vcmVqdGZocXhza212dWN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDUwNDUsImV4cCI6MjA5NTk4MTA0NX0.dohIz32Ls2vHKep-Rzl8TWMaaeokrzmBYJmSkOHfVxw";
+const GAME_ID          = "60fd4970-0997-483b-8ce3-ef16e32af460";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Spieler-Liste an einem Ort definieren
+const PLAYERS = ["Leomar", "Valariel", "Hesindian", "Romoxosch", "Angrondt"];
+const DM_CODE = "Meister67";
 
-const GAME_ID = "60fd4970-0997-483b-8ce3-ef16e32af460";
+/* ── STATE ───────────────────────────────────────────── */
+const db     = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const mapEl  = document.getElementById("map");
 
-const map = document.getElementById("map");
-
-let ROLE = null;
-let PLAYER_ID = null;
-let tokens = [];
-let dragging = null;
-let offsetX = 0;
-let offsetY = 0;
+let ROLE          = null;
+let PLAYER_ID     = null;
+let tokens        = [];
+let dragging      = null;   // { token, el, offsetX, offsetY }
 let selectedToken = null;
 
-/* LOGIN */
-window.login = function () {
-
-  const code = document.getElementById("codeInput").value.trim();
-  const players = ["Leomar", "Valariel", "Hesindian", "Romoxosch", "Angrondt"];
-
-  if (code === "Meister67") {
-    ROLE = "dm";
-    PLAYER_ID = "dm";
-  }
-  else if (players.includes(code)) {
-    ROLE = "player";
-    PLAYER_ID = code;
-  }
-  else {
-    document.getElementById("loginError").innerText = "❌ Falsches Codewort";
-    return;
-  }
-
-  document.getElementById("roleSelect").style.display = "none";
-
-  if (ROLE !== "dm") {
-  document.getElementById("panel").style.display = "none";
+/* ── UTILS ───────────────────────────────────────────── */
+function log(msg) {
+  const el = document.getElementById("log");
+  if (!el) return;
+  el.textContent = msg + "\n" + el.textContent;
 }
 
+function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+
+/* ── LOGIN ───────────────────────────────────────────── */
+window.loginAs = function (code) {
+  if (code === DM_CODE) {
+    ROLE = "dm"; PLAYER_ID = "dm";
+  } else if (PLAYERS.includes(code)) {
+    ROLE = "player"; PLAYER_ID = code;
+  } else return;
+
+  document.getElementById("loginScreen").style.display = "none";
+  if (ROLE === "dm") {
+    document.getElementById("panel").style.display = "block";
+    loadPlayersIntoSelect();
+  }
+
+  showDice();
   startGame();
 };
 
+/* ── GAME INIT ───────────────────────────────────────── */
 function startGame() {
   loadMap();
   loadTokens();
   setupRealtime();
-  loadPlayersIntoSelect();
+  setupPresence();
+  setupPing();
+  setupWeatherChannel();
 }
 
-/* PLAYERS */
-async function loadPlayersIntoSelect() {
-  const players = ["Leomar", "Valariel", "Hesindian", "Romoxosch", "Angrondt"];
-
-  const select = document.getElementById("ownerSelect");
-  select.innerHTML = `<option value="">Kein Spieler</option>`;
-
-  players.forEach(p => {
+function loadPlayersIntoSelect() {
+  const sel = document.getElementById("ownerSelect");
+  sel.innerHTML = `<option value="">Kein Spieler</option>`;
+  PLAYERS.forEach(p => {
     const opt = document.createElement("option");
-    opt.value = p;
-    opt.innerText = p;
-    select.appendChild(opt);
+    opt.value = opt.textContent = p;
+    sel.appendChild(opt);
   });
 }
 
-/* MAP */
+/* ── MAP ─────────────────────────────────────────────── */
 async function loadMap() {
-  const { data } = await client
-    .from("maps")
-    .select("*")
+  const { data } = await db.from("maps")
+    .select("image_url")
     .eq("game_id", GAME_ID)
     .order("created_at", { ascending: false })
     .limit(1);
 
-  if (data?.length) {
-    map.style.backgroundImage = `url(${data[0].image_url})`;
-  }
+  if (data?.length) mapEl.style.backgroundImage = `url(${data[0].image_url})`;
 }
 
-/* UPLOAD MAP */
 window.uploadMap = async function () {
-
   if (ROLE !== "dm") return;
-
   const file = document.getElementById("mapFile").files[0];
   if (!file) return;
 
-  const fileName = Date.now() + "_" + file.name;
+  const btn = document.getElementById("mapUploadBtn");
+  btn.disabled = true; btn.textContent = "…";
 
-  await client.storage.from("maps").upload(fileName, file);
+  const fileName = `${Date.now()}_${file.name}`;
+  await db.storage.from("maps").upload(fileName, file);
+  const url = db.storage.from("maps").getPublicUrl(fileName).data.publicUrl;
+  await db.from("maps").insert({ game_id: GAME_ID, image_url: url });
 
-  const url = client.storage.from("maps").getPublicUrl(fileName).data.publicUrl;
-
-  await client.from("maps").insert({
-    game_id: GAME_ID,
-    image_url: url
-  });
-
+  btn.disabled = false; btn.textContent = "Hochladen";
   loadMap();
+  log("🗺 Karte hochgeladen");
 };
 
-/* CREATE TOKEN */
-window.createToken = async function () {
-
-  if (ROLE !== "dm") return;
-
-  const file = document.getElementById("tokenFile").files[0];
-  if (!file) return;
-
-  const type = document.getElementById("tokenType").value;
-  const owner_id = document.getElementById("ownerSelect").value || null;
-  const hasMana = document.getElementById("hasMana").checked;
-
-  const fileName = "token_" + Date.now() + "_" + file.name;
-
-  await client.storage.from("maps").upload(fileName, file);
-
-  const url = client.storage.from("maps").getPublicUrl(fileName).data.publicUrl;
-
-  const rect = map.getBoundingClientRect();
-
-  await client.from("tokens").insert({
-   game_id: GAME_ID,
-   x: rect.width / 2,
-   y: rect.height / 2,
-   size: 60,
-
-   hp_current: 10,
-   hp_max: 10,
-
-   mana_current: hasMana ? 20 : null,
-   mana_max: hasMana ? 20 : null,
-
-   token_type: type,
-   owner_id: owner_id,
-   image_url: url
-});
-};
-
-/* LOAD TOKENS */
+/* ── TOKENS ──────────────────────────────────────────── */
 async function loadTokens() {
-  const { data } = await client.from("tokens")
-    .select("*")
-    .eq("game_id", GAME_ID);
-
+  const { data } = await db.from("tokens").select("*").eq("game_id", GAME_ID);
   tokens = data || [];
   renderTokens();
 }
 
-function getHPDisplay(t) {
+window.createToken = async function () {
+  if (ROLE !== "dm") return;
+  const file = document.getElementById("tokenFile").files[0];
+  if (!file) { log("⚠ Keine Bilddatei gewählt"); return; }
 
-  if (ROLE === "dm") {
-    return `${t.hp_current ?? 0}/${t.hp_max ?? 0}`;
-  }
+  const btn = document.getElementById("createTokenBtn");
+  btn.disabled = true; btn.textContent = "…";
 
-  // Spieler sehen nur grobe Infos
-  const percent = (t.hp_current / t.hp_max) * 100;
+  const type     = document.getElementById("tokenType").value;
+  const owner_id = document.getElementById("ownerSelect").value || null;
+  const hasMana  = document.getElementById("hasMana").checked;
+  const rect     = mapEl.getBoundingClientRect();
+  const fileName = `token_${Date.now()}_${file.name}`;
 
-  if (percent <= 0) return "☠️";
-  if (percent <= 20) return "sehr schwach";
-  if (percent <= 40) return "schwach";
-  if (percent <= 70) return "verletzt";
-  if (percent <= 90) return "leicht verletzt";
-  return "gesund";
-}
+  await db.storage.from("maps").upload(fileName, file);
+  const url = db.storage.from("maps").getPublicUrl(fileName).data.publicUrl;
 
-/* RENDER TOKENS */
+  await db.from("tokens").insert({
+    game_id:      GAME_ID,
+    x:            rect.width  / 2,
+    y:            rect.height / 2,
+    size:         60,
+    hp_current:   10,
+    hp_max:       10,
+    mana_current: hasMana ? 20 : null,
+    mana_max:     hasMana ? 20 : null,
+    token_type:   type,
+    owner_id,
+    image_url:    url,
+  });
+
+  btn.disabled = false; btn.textContent = "Token erstellen";
+  log(`✅ Token erstellt (${type})`);
+};
+
+/* ── RENDER ──────────────────────────────────────────── */
 function renderTokens() {
-
-  map.querySelectorAll(".token").forEach(t => t.remove());
+  // Vorhandene Token-Elemente entfernen
+  mapEl.querySelectorAll(".token").forEach(el => el.remove());
 
   for (const t of tokens) {
-
     const el = document.createElement("div");
-    el.className = "token";
-
-    el.style.width = (t.size || 60) + "px";
-    el.style.height = (t.size || 60) + "px";
-
-    el.style.left = t.x + "px";
-    el.style.top = t.y + "px";
+    el.className   = "token";
+    el.dataset.id  = t.id;
+    el.style.width = el.style.height = `${t.size || 60}px`;
+    el.style.left  = `${t.x}px`;
+    el.style.top   = `${t.y}px`;
 
     if (t.image_url) {
-      el.style.backgroundImage = `url(${t.image_url})`;
-      el.style.backgroundSize = "cover";
+      el.style.backgroundImage    = `url(${t.image_url})`;
+      el.style.backgroundSize     = "cover";
       el.style.backgroundPosition = "center";
     }
 
-    const isOwner = (ROLE === "dm" || t.owner_id === PLAYER_ID);
-    const isPlayerToken = t.token_type === "player";
-    const isDead = (t.hp_current <= 0);
+    const canControl = (ROLE === "dm" || t.owner_id === PLAYER_ID);
+    const isDead     = (t.hp_current ?? 1) <= 0;
 
-    el.onmousedown = (e) => {
-      if (!isOwner) return;
-      dragging = t;
-      offsetX = e.offsetX;
-      offsetY = e.offsetY;
-    };
+    if (canControl) {
+      el.addEventListener("mousedown", e => startDrag(e, t, el));
+      el.addEventListener("contextmenu", e => { e.preventDefault(); openMenu(t); });
+    }
 
-    el.oncontextmenu = (e) => {
-      e.preventDefault();
-      if (!isOwner) return;
-      openMenu(t);
-    };
-
-    /* =========================
-       DEAD TOKEN
-    ========================= */
     if (isDead) {
       el.classList.add("token-dead");
-      map.appendChild(el);
+      mapEl.appendChild(el);
       continue;
     }
 
-    /* =========================
-       HP BAR
-    ========================= */
-    const container = document.createElement("div");
-    container.className = "hp-bar-container";
+    // HP Bar
+    const hpPct = clamp((t.hp_current / t.hp_max) * 100, 0, 100);
+    let displayPct = hpPct;
+    if (ROLE !== "dm" && t.token_type !== "player") {
+      displayPct = hpPct > 66 ? 100 : hpPct > 33 ? 66 : hpPct > 0 ? 33 : 0;
+    }
+    el.appendChild(makeBar("hp", displayPct, hpPct < 35,
+      ROLE === "dm" ? `${t.hp_current}/${t.hp_max}`
+        : (displayPct === 100 ? "gesund" : displayPct === 66 ? "verletzt"
+           : displayPct === 33 ? "stark verletzt" : "kritisch")
+    ));
 
-    const fill = document.createElement("div");
-    fill.className = "hp-bar-fill";
-
-    const hpPercent = (t.hp_current / t.hp_max) * 100;
-
-    let displayPercent = hpPercent;
-
-    if (ROLE !== "dm" && !isPlayerToken) {
-      if (hpPercent > 66) displayPercent = 100;
-      else if (hpPercent > 33) displayPercent = 66;
-      else if (hpPercent > 0) displayPercent = 33;
-      else displayPercent = 0;
+    // Mana Bar (DM oder eigener Token)
+    if (t.mana_max != null && (ROLE === "dm" || t.owner_id === PLAYER_ID)) {
+      const manaPct = clamp((t.mana_current / t.mana_max) * 100, 0, 100);
+      el.appendChild(makeBar("mana", manaPct, false, `${t.mana_current}/${t.mana_max}`));
     }
 
-    fill.style.width = displayPercent + "%";
+    // Status-Effekte
+    applyStatusEffect(el, t.status);
 
-    if (hpPercent < 35) {
-      fill.style.background = "linear-gradient(90deg,#ff4444,#cc0000)";
-    }
+    // Token-Interaktionen
+    addTokenInteractions(el, t);
 
-    const text = document.createElement("div");
-    text.className = "hp-bar-text";
-
-    text.innerText =
-      ROLE === "dm"
-        ? `${t.hp_current}/${t.hp_max}`
-        : (displayPercent === 100 ? "voll"
-          : displayPercent === 66 ? "verletzt"
-          : displayPercent === 33 ? "stark verletzt"
-          : "kritisch");
-
-    container.appendChild(fill);
-    container.appendChild(text);
-    el.appendChild(container);
-
-    /* =========================
-       MANA BAR
-    ========================= */
-    if (t.mana_max != null && (ROLE === "dm" || isPlayerToken)) {
-
-      const manaContainer = document.createElement("div");
-      manaContainer.className = "hp-bar-container";
-      manaContainer.style.bottom = "-22px";
-
-      const manaFill = document.createElement("div");
-      manaFill.className = "hp-bar-fill";
-
-      const manaPercent =
-        Math.max(0, Math.min(100,
-        (t.mana_current / t.mana_max) * 100));
-
-      manaFill.style.width = manaPercent + "%";
-      manaFill.style.background = "linear-gradient(90deg,#33aaff,#0066ff)";
-
-      const manaText = document.createElement("div");
-      manaText.className = "hp-bar-text";
-      manaText.innerText = `${t.mana_current}/${t.mana_max}`;
-
-      manaContainer.appendChild(manaFill);
-      manaContainer.appendChild(manaText);
-
-      el.appendChild(manaContainer);
-    }
-
-    map.appendChild(el);
+    mapEl.appendChild(el);
   }
 }
 
-   
-/* DRAG */
-document.addEventListener("mousemove", (e) => {
+function applyStatusEffect(el, status) {
+  if (!status || status === "none") return;
+
+  if (status === "sleep") {
+    ["😴","💤","z"].forEach((s, i) => {
+      const z = document.createElement("div");
+      z.className = "effect-zzz";
+      // nth-child targets via inline style delay override
+      if (i === 1) z.style.animationDelay = "0.65s";
+      if (i === 2) z.style.animationDelay = "1.3s";
+      z.textContent = s;
+      el.appendChild(z);
+    });
+  }
+
+  if (status === "confused") {
+    const center = document.createElement("div");
+    center.className = "effect-stars";
+    ["⭐","✨","💫"].forEach((s, i) => {
+      const star = document.createElement("span");
+      star.className = "effect-star";
+      star.textContent = s;
+      star.style.setProperty("--start", (i * 120) + "deg");
+      star.style.animationDelay = (i * 0.66) + "s";
+      center.appendChild(star);
+    });
+    el.appendChild(center);
+  }
+
+  if (status === "drunk") {
+    el.classList.add("effect-drunk");
+  }
+
+  if (status === "fear") {
+    el.classList.add("effect-fear");
+  }
+
+  if (status === "love") {
+    ["❤️","💕","💖"].forEach((s, i) => {
+      const h = document.createElement("div");
+      h.className = "effect-heart";
+      h.textContent = s;
+      if (i === 1) { h.style.animationDelay = "0.8s"; h.style.left = "35%"; }
+      if (i === 2) { h.style.animationDelay = "1.6s"; h.style.left = "65%"; }
+      el.appendChild(h);
+    });
+  }
+}
+
+function makeBar(type, pct, isLow, label) {
+  const container = document.createElement("div");
+  container.className = `bar-container ${type}`;
+
+  const fill = document.createElement("div");
+  fill.className = `bar-fill ${type}${isLow ? " low" : ""}`;
+  fill.style.width = `${pct}%`;
+
+  const text = document.createElement("div");
+  text.className = `bar-text ${type}`;
+  text.textContent = label;
+
+  container.append(fill, text);
+  return container;
+}
+
+/* ── DRAG (nur das eine Element bewegen, kein Re-Render) ── */
+function startDrag(e, token, el) {
+  e.preventDefault();
+  const rect = mapEl.getBoundingClientRect();
+  dragging = {
+    token,
+    el,
+    offsetX: e.clientX - rect.left - token.x,
+    offsetY: e.clientY - rect.top  - token.y,
+  };
+  el.classList.add("dragging");
+}
+
+document.addEventListener("mousemove", e => {
   if (!dragging) return;
+  const rect  = mapEl.getBoundingClientRect();
+  const newX  = e.clientX - rect.left - dragging.offsetX;
+  const newY  = e.clientY - rect.top  - dragging.offsetY;
 
-  const rect = map.getBoundingClientRect();
-
-  dragging.x = e.clientX - rect.left - offsetX;
-  dragging.y = e.clientY - rect.top - offsetY;
-
-  renderTokens();
+  dragging.token.x = newX;
+  dragging.token.y = newY;
+  dragging.el.style.left = `${newX}px`;
+  dragging.el.style.top  = `${newY}px`;
 });
 
 document.addEventListener("mouseup", async () => {
   if (!dragging) return;
-
-  const t = dragging;
+  const { token, el } = dragging;
   dragging = null;
+  el.classList.remove("dragging");
 
-  await client.from("tokens")
-    .update({ x: t.x, y: t.y })
-    .eq("id", t.id);
+  await db.from("tokens").update({ x: token.x, y: token.y }).eq("id", token.id);
 });
 
-/* MENU */
+/* ── TOKEN MENU ──────────────────────────────────────── */
 function openMenu(token) {
-
   selectedToken = token;
 
-  const isDM = ROLE === "dm";
-  const isOwner = (ROLE === "dm" || token.owner_id === PLAYER_ID);
-
-  const box = document.getElementById("menuContent");
+  const isDM    = ROLE === "dm";
+  const isOwner = isDM || token.owner_id === PLAYER_ID;
+  const box     = document.getElementById("menuContent");
   box.innerHTML = "";
 
-  /* =========================
-     PLAYER VIEW (ONLY HP)
-  ========================= */
   if (isOwner) {
+    box.appendChild(makeStatRow("HP", token.hp_current, token.hp_max, "hpInput", "hpMaxInput"));
 
-  box.innerHTML += `
-    <div style="margin-bottom:10px;"><b>HP</b></div>
+    if (token.mana_max != null) {
+      box.appendChild(makeStatRow("Mana", token.mana_current, token.mana_max, "manaInput", "manaMaxInput"));
+    }
+  }
 
-    <div style="display:flex; gap:5px; align-items:center; margin-bottom:6px;">
-      <span style="width:80px;">Aktuell: ${token.hp_current ?? 0}</span>
-      <input id="hpInput" placeholder="Neue HP" style="width:90px;">
-      <button onclick="updateHP()" style="width:40px;">✔</button>
-    </div>
-
-    <div style="margin-bottom:10px;"><b>Max HP</b></div>
-
-    <div style="display:flex; gap:5px; align-items:center;">
-      <span style="width:80px;">Aktuell: ${token.hp_max ?? 0}</span>
-      <input id="hpMaxInput" placeholder="Neue Max HP" style="width:90px;">
-      <button onclick="updateHP()" style="width:40px;">✔</button>
-    </div>
-    ${token.mana_max != null ? `
-
-    <div style="margin-top:12px;"><b>Mana</b></div>
-
-    <div style="display:flex; gap:5px; align-items:center; margin-bottom:6px;">
-      <span style="width:80px;">Aktuell: ${token.mana_current ?? 0}</span>
-      <input id="manaInput" placeholder="Neues Mana" style="width:90px;">
-      <button onclick="updateHP()" style="width:40px;">✔</button>
-    </div>
-
-    <div style="margin-bottom:10px;"><b>Max Mana</b></div>
-
-    <div style="display:flex; gap:5px; align-items:center;">
-      <span style="width:80px;">Aktuell: ${token.mana_max ?? 0}</span>
-      <input id="manaMaxInput" placeholder="Neues Max Mana" style="width:90px;">
-      <button onclick="updateHP()" style="width:40px;">✔</button>
-    </div>
-    ` : ""}
-  `;
-}
-
-  /* =========================
-     DM VIEW (FULL CONTROL)
-  ========================= */
   if (isDM) {
+    const currentStatus = token.status || "none";
+    const statuses = [
+      { key:"none",     label:"✅ Kein Effekt" },
+      { key:"sleep",    label:"😴 Schlaf" },
+      { key:"confused", label:"🤪 Verwirrt" },
+      { key:"drunk",    label:"🍺 Betrunken" },
+      { key:"fear",     label:"😱 Angst" },
+      { key:"love",     label:"❤️ Verliebt" },
+    ];
 
-    box.innerHTML += `
-      
-
-      <input id="sizeInput" placeholder="Größe">
-      <button onclick="resizeToken()">Resize</button>
-      <button onclick="deleteToken()">Delete</button>
+    const dmRow = document.createElement("div");
+    dmRow.style.marginTop = "12px";
+    dmRow.innerHTML = `
+      <label>Status-Effekt</label>
+      <div class="status-grid" id="statusGrid"></div>
+      <label style="margin-top:10px;display:block;">Größe</label>
+      <div class="stat-row">
+        <input id="sizeInput" type="number" placeholder="${token.size || 60}" style="width:80px;">
+        <button onclick="resizeToken()">Anwenden</button>
+        <button class="danger" onclick="deleteToken()">Löschen</button>
+      </div>
     `;
+    box.appendChild(dmRow);
+
+    const grid = document.getElementById("statusGrid");
+    statuses.forEach(s => {
+      const btn = document.createElement("button");
+      btn.className = "status-btn" + (currentStatus === s.key ? " active" : "");
+      btn.textContent = s.label;
+      btn.onclick = () => setStatus(s.key, grid, btn);
+      grid.appendChild(btn);
+    });
   }
 
   document.getElementById("tokenMenu").style.display = "flex";
 }
-window.changeHP = async function (val) {
 
-  const newHP = (selectedToken.hp_current || 0) + val;
+function makeStatRow(label, current, max, idCurrent, idMax) {
+  const wrap = document.createElement("div");
+  wrap.innerHTML = `
+    <label>${label}</label>
+    <div class="stat-row">
+      <span class="stat-current">${current ?? 0} / ${max ?? 0}</span>
+      <input id="${idCurrent}" type="number" placeholder="Aktuell">
+      <input id="${idMax}"     type="number" placeholder="Max">
+    </div>
+  `;
+  return wrap;
+}
 
-  await client.from("tokens")
-    .update({ hp_current: newHP })
-    .eq("id", selectedToken.id);
 
-  loadTokens();
+window.setStatus = async function (status, grid, activeBtn) {
+  if (!selectedToken) return;
+  await db.from("tokens").update({ status }).eq("id", selectedToken.id);
+  selectedToken.status = status;
+  // Update button highlights
+  grid.querySelectorAll(".status-btn").forEach(b => b.classList.remove("active"));
+  activeBtn.classList.add("active");
 };
 
-window.changeMaxHP = async function (val) {
-
-  const newMax = (selectedToken.hp_max || 0) + val;
-
-  await client.from("tokens")
-    .update({ hp_max: newMax })
-    .eq("id", selectedToken.id);
-
-  loadTokens();
-};
 window.closeMenu = function () {
   selectedToken = null;
   document.getElementById("tokenMenu").style.display = "none";
 };
 
+// Einheitliche Speicher-Funktion für alle Felder
+window.saveAndClose = async function () {
+  if (!selectedToken) return;
+
+  const updates = {};
+  const read = (id, key) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== "") {
+      const v = parseInt(el.value);
+      if (!isNaN(v)) updates[key] = v;
+    }
+  };
+
+  read("hpInput",     "hp_current");
+  read("hpMaxInput",  "hp_max");
+  read("manaInput",   "mana_current");
+  read("manaMaxInput","mana_max");
+
+  if (Object.keys(updates).length > 0) {
+    await db.from("tokens").update(updates).eq("id", selectedToken.id);
+    log(`💾 Token gespeichert: ${JSON.stringify(updates)}`);
+  }
+  closeMenu();
+};
+
 window.deleteToken = async function () {
-  if (ROLE !== "dm") return;
-  await client.from("tokens").delete().eq("id", selectedToken.id);
+  if (ROLE !== "dm" || !selectedToken) return;
+  if (!confirm("Token wirklich löschen?")) return;
+  await db.from("tokens").delete().eq("id", selectedToken.id);
+  log("🗑 Token gelöscht");
   closeMenu();
 };
 
 window.resizeToken = async function () {
-  if (ROLE !== "dm") return;
-
+  if (ROLE !== "dm" || !selectedToken) return;
   const size = parseInt(document.getElementById("sizeInput").value);
-  await client.from("tokens").update({ size }).eq("id", selectedToken.id);
-
+  if (isNaN(size) || size < 10) { log("⚠ Ungültige Größe"); return; }
+  await db.from("tokens").update({ size }).eq("id", selectedToken.id);
+  log(`↔ Token Größe: ${size}px`);
   closeMenu();
 };
 
-window.updateHP = async function () {
-
-  if (!selectedToken) return;
-
-  const updates = {};
-
-  const hpInput = document.getElementById("hpInput")?.value;
-  const hpMaxInput = document.getElementById("hpMaxInput")?.value;
-
-  const manaInput =
-    document.getElementById("manaInput")?.value;
-
-  const manaMaxInput =
-    document.getElementById("manaMaxInput")?.value;
-
-  if (hpInput !== "") updates.hp_current = parseInt(hpInput);
-  if (hpMaxInput !== "") updates.hp_max = parseInt(hpMaxInput);
-  if (manaInput !== "")
-    updates.mana_current = parseInt(manaInput);
-
-if (manaMaxInput !== "")
-  updates.mana_max = parseInt(manaMaxInput);
-
-  if (Object.keys(updates).length === 0) return;
-
-  await client.from("tokens")
-    .update(updates)
-    .eq("id", selectedToken.id);
-
-  closeMenu();
-};
-
-/* REALTIME */
+/* ── REALTIME ────────────────────────────────────────── */
 function setupRealtime() {
-  client.channel("tokens-live")
-    .on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "tokens"
-    }, () => loadTokens())
+  db.channel("tokens-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "tokens" }, () => loadTokens())
     .subscribe();
 
-  client.channel("maps-live")
-    .on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "maps"
-    }, () => loadMap())
+  db.channel("maps-live")
+    .on("postgres_changes", { event: "*", schema: "public", table: "maps" }, () => loadMap())
     .subscribe();
 }
 
-});
 
+/* ── DICE ────────────────────────────────────────────── */
+function showDice() {
+  document.getElementById("diceToggle").style.display = "flex";
+}
+
+window.toggleDice = function () {
+  const panel  = document.getElementById("dicePanel");
+  const toggle = document.getElementById("diceToggle");
+  const open   = panel.style.display === "flex";
+  panel.style.display  = open ? "none" : "flex";
+  // Shift toggle button up when panel is open
+  toggle.style.bottom  = open ? "16px" : (panel.offsetHeight + 24) + "px";
+};
+
+window.roll = function (sides, btn) {
+  const result   = Math.ceil(Math.random() * sides);
+  const resultEl = btn.querySelector(".dice-result");
+
+  // Crit / Fumble highlight for W20
+  resultEl.className = "dice-result";
+  if (sides === 20) {
+    if (result === 20) resultEl.classList.add("fumble");
+    if (result === 1)  resultEl.classList.add("crit");
+  }
+
+  // Rolling animation
+  btn.classList.remove("rolling");
+  void btn.offsetWidth; // reflow to restart animation
+  btn.classList.add("rolling");
+  btn.addEventListener("animationend", () => btn.classList.remove("rolling"), { once: true });
+
+  resultEl.textContent = result;
+  if (typeof log === "function") log("🎲 W" + sides + ": " + result);
+  if (sides === 20) {
+    if (result === 20) triggerCelebration();   // Patzer (20=rot)
+    if (result === 1)  triggerFumble();        // Kritisch (1=grün)
+  }
+};
+
+
+/* ── PRESENCE ────────────────────────────────────────── */
+// Jeder Spieler schreibt seinen Heartbeat in die DB (Supabase Realtime Presence via channel)
+let presenceChannel = null;
+
+function setupPresence() {
+  presenceChannel = db.channel("presence-" + GAME_ID, {
+    config: { presence: { key: PLAYER_ID } }
+  });
+
+  presenceChannel
+    .on("presence", { event: "sync" }, () => {
+      if (ROLE === "dm") renderPresence(presenceChannel.presenceState());
+    })
+    .subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await presenceChannel.track({ player: PLAYER_ID, online_at: Date.now() });
+      }
+    });
+
+  // Initial render for DM
+  if (ROLE === "dm") renderPresence({});
+}
+
+function renderPresence(state) {
+  const list = document.getElementById("presenceList");
+  if (!list) return;
+  const onlinePlayers = new Set(
+    Object.values(state).flatMap(arr => arr.map(p => p.player))
+  );
+  list.innerHTML = "";
+  PLAYERS.forEach(name => {
+    const online = onlinePlayers.has(name);
+    const row = document.createElement("div");
+    row.className = "presence-row" + (online ? " online" : "");
+    row.innerHTML = "<div class=\"presence-dot\"></div><span>" + name + "</span>" +
+      (online ? " <span style=\"margin-left:auto;font-size:10px;color:#00ff88\">online</span>" : "");
+    list.appendChild(row);
+  });
+}
+
+
+/* ── PING ────────────────────────────────────────────── */
+const PING_COLORS = {
+  Leomar:    "#f5d020",
+  Hesindian: "#3399ff",
+  Valariel:  "#44dd77",
+  Romoxosch: "#ff4444",
+  Angrondt:  "#aaaaaa",
+  dm:        "#cc66ff",
+};
+
+let pingChannel = null;
+
+function setupPing() {
+  pingChannel = db.channel("pings-" + GAME_ID, {
+    config: { broadcast: { self: false } }
+  });
+
+  pingChannel
+    .on("broadcast", { event: "ping" }, ({ payload }) => {
+      showPing(payload.x, payload.y, payload.color);
+    })
+    .subscribe();
+
+  // Alt+click to send ping
+  mapEl.addEventListener("click", async (e) => {
+    if (!e.altKey) return;
+    const rect  = mapEl.getBoundingClientRect();
+    const x     = e.clientX - rect.left;
+    const y     = e.clientY - rect.top;
+    const color = PING_COLORS[PLAYER_ID] || "#ffffff";
+
+    showPing(x, y, color);
+
+    await pingChannel.send({
+      type: "broadcast",
+      event: "ping",
+      payload: {
+        x: x / rect.width,
+        y: y / rect.height,
+        color
+      }
+    });
+  });
+}
+
+function showPing(x, y, color) {
+  const rect = mapEl.getBoundingClientRect();
+  // If coordinates are percentages, convert to pixels
+  const px = (x <= 1 && x >= 0) ? x * rect.width  : x;
+  const py = (y <= 1 && y >= 0) ? y * rect.height : y;
+
+  const el = document.createElement("div");
+  el.className = "ping";
+  el.style.left  = px + "px";
+  el.style.top   = py + "px";
+  el.style.background = color;
+  el.style.boxShadow  = "0 0 12px 4px " + color;
+  mapEl.appendChild(el);
+  setTimeout(() => el.remove(), 1300);
+}
+
+
+/* ── DICE CELEBRATION / FAIL ─────────────────────────── */
+function triggerCelebration() {
+  const overlay = document.getElementById("diceOverlay");
+  const colors  = ["#ff4444","#ffcc00","#ff6600","#ff3399","#ff0000","#ff8800"];
+
+  // Flash screen red
+  const flash = document.createElement("div");
+  flash.className = "dice-flash";
+  flash.style.background = "#ff0000";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 600);
+
+  // Banner
+  const banner = document.createElement("div");
+  banner.className = "fumble-banner";
+  banner.textContent = "💀 PATZER! 💀";
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 2200);
+
+  // Skulls fall
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement("div");
+    s.className = "skull-fall";
+    s.textContent = ["💀","☠️","🩸"][Math.floor(Math.random()*3)];
+    s.style.left = Math.random()*100 + "vw";
+    s.style.animationDuration = (1.0 + Math.random()*0.8) + "s";
+    s.style.animationDelay    = Math.random()*0.5 + "s";
+    overlay.appendChild(s);
+    setTimeout(() => s.remove(), 2000);
+  }
+}
+
+function triggerFumble() {
+  const overlay = document.getElementById("diceOverlay");
+  const colors  = ["#00ff88","#44ffcc","#88ff44","#00cc55","#22ee77","#ffff00"];
+
+  // Flash screen green
+  const flash = document.createElement("div");
+  flash.className = "dice-flash";
+  flash.style.background = "#00ff88";
+  document.body.appendChild(flash);
+  setTimeout(() => flash.remove(), 600);
+
+  // Banner
+  const banner = document.createElement("div");
+  banner.className = "crit-banner";
+  banner.textContent = "🎉 KRITISCH! 🎉";
+  document.body.appendChild(banner);
+  setTimeout(() => banner.remove(), 2200);
+
+  // Confetti
+  for (let i = 0; i < 60; i++) {
+    const c = document.createElement("div");
+    c.className = "confetti-piece";
+    c.style.left     = Math.random()*100 + "vw";
+    c.style.background = colors[Math.floor(Math.random()*colors.length)];
+    c.style.transform  = "rotate(" + Math.random()*360 + "deg)";
+    c.style.animationDuration = (1.2 + Math.random()*1.2) + "s";
+    c.style.animationDelay    = Math.random()*0.6 + "s";
+    overlay.appendChild(c);
+    setTimeout(() => c.remove(), 2800);
+  }
+}
+
+/* ── TOKEN INTERACTIONS ──────────────────────────────── */
+function addTokenInteractions(el, t) {
+  const isOwn = (t.owner_id === PLAYER_ID || ROLE === "dm");
+  if (!isOwn) return;
+
+  // Doppelklick → Sprung
+  el.addEventListener("dblclick", (e) => {
+    e.preventDefault();
+    el.classList.remove("token-jump");
+    void el.offsetWidth;
+    el.classList.add("token-jump");
+    el.addEventListener("animationend", () => el.classList.remove("token-jump"), { once: true });
+  });
+
+  // Shift+Click → lokaler Ping-Ring
+  el.addEventListener("click", (e) => {
+    if (!e.shiftKey) return;
+    e.stopPropagation();
+    el.classList.remove("token-ping-ring");
+    void el.offsetWidth;
+    el.classList.add("token-ping-ring");
+    el.addEventListener("animationend", () => el.classList.remove("token-ping-ring"), { once: true });
+  });
+
+  // Alt+Click on token → Winken (separate from map alt-click ping)
+  el.addEventListener("click", (e) => {
+    if (!e.altKey) return;
+    e.stopPropagation(); // prevent map ping
+    el.classList.remove("token-wave");
+    void el.offsetWidth;
+    el.classList.add("token-wave");
+    el.addEventListener("animationend", () => el.classList.remove("token-wave"), { once: true });
+    // Emoji
+    const wave = document.createElement("div");
+    wave.className = "wave-emoji";
+    wave.textContent = "👋";
+    el.appendChild(wave);
+    setTimeout(() => wave.remove(), 750);
+  });
+}
+
+/* ── WEATHER ─────────────────────────────────────────── */
+let currentWeather  = "none";
+let weatherInterval = null;
+let stormInterval   = null;
+let weatherChannel  = null;
+
+function setupWeatherChannel() {
+  weatherChannel = db.channel("weather-" + GAME_ID, {
+    config: { broadcast: { self: false } }
+  });
+  weatherChannel
+    .on("broadcast", { event: "weather" }, ({ payload }) => {
+      applyWeather(payload.weather);
+      highlightWeatherBtn(payload.weather);
+    })
+    .on("broadcast", { event: "daynight" }, ({ payload }) => {
+      applyDayNight(payload.mode);
+      highlightDayNightBtn(payload.mode);
+    })
+    .subscribe();
+}
+
+window.setWeather = async function(type) {
+  applyWeather(type);
+  highlightWeatherBtn(type);
+  await weatherChannel.send({ type:"broadcast", event:"weather", payload:{ weather: type } });
+};
+
+window.setDayNight = async function(mode) {
+  applyDayNight(mode);
+  highlightDayNightBtn(mode);
+  await weatherChannel.send({ type:"broadcast", event:"daynight", payload:{ mode } });
+};
+
+function highlightWeatherBtn(type) {
+  document.querySelectorAll(".weather-grid .weather-btn").forEach(b => b.classList.remove("active"));
+  const btn = document.getElementById("wbtn-" + type);
+  if (btn) btn.classList.add("active");
+}
+
+function highlightDayNightBtn(mode) {
+  ["day","dusk","night"].forEach(m => {
+    const b = document.getElementById("btn-" + m);
+    if (b) b.classList.toggle("active", m === mode);
+  });
+}
+
+function applyDayNight(mode) {
+  const layer = document.getElementById("dayNightLayer");
+  const overlays = {
+    day:   "transparent",
+    dusk:  "rgba(80,30,0,0.35)",
+    night: "rgba(5,5,30,0.65)",
+  };
+  layer.style.background = overlays[mode] || "transparent";
+}
+
+function applyWeather(type) {
+  currentWeather = type;
+  clearWeather();
+
+  const layer = document.getElementById("weatherLayer");
+
+  if (type === "rain" || type === "storm") {
+    const count = type === "storm" ? 120 : 60;
+    for (let i = 0; i < count; i++) {
+      const drop = document.createElement("div");
+      drop.className = "raindrop";
+      const h = 8 + Math.random() * 14;
+      drop.style.height = h + "px";
+      drop.style.left   = Math.random()*110 - 5 + "vw";
+      drop.style.opacity = 0.4 + Math.random()*0.5;
+      drop.style.animationDuration = (0.4 + Math.random()*0.4) + "s";
+      drop.style.animationDelay    = Math.random()*1.5 + "s";
+      layer.appendChild(drop);
+    }
+    if (type === "storm") {
+      stormInterval = setInterval(() => {
+        if (Math.random() < 0.3) {
+          const lf = document.createElement("div");
+          lf.className = "lightning-flash";
+          document.body.appendChild(lf);
+          setTimeout(() => lf.remove(), 200);
+        }
+      }, 2500);
+    }
+  }
+
+  if (type === "snow") {
+    const flakes = ["❄","❅","❆","·","*"];
+    for (let i = 0; i < 50; i++) {
+      const sf = document.createElement("div");
+      sf.className = "snowflake";
+      sf.textContent = flakes[Math.floor(Math.random()*flakes.length)];
+      sf.style.left  = Math.random()*110 - 5 + "vw";
+      sf.style.fontSize = (8 + Math.random()*12) + "px";
+      sf.style.animationDuration = (4 + Math.random()*5) + "s";
+      sf.style.animationDelay    = Math.random()*5 + "s";
+      layer.appendChild(sf);
+    }
+  }
+
+  if (type === "fog") {
+    const fog = document.createElement("div");
+    fog.className = "fogLayer";
+    layer.appendChild(fog);
+  }
+}
+
+function clearWeather() {
+  document.getElementById("weatherLayer").innerHTML = "";
+  if (stormInterval) { clearInterval(stormInterval); stormInterval = null; }
+}
+
+
+/* ── PRESETS ─────────────────────────────────────────── */
+// Presets werden in Supabase in der Tabelle "presets" gespeichert.
+// Tabelle anlegen: id (uuid, default gen), game_id (text), name (text),
+//   map_url (text), tokens (jsonb), created_at (timestamptz default now())
+
+window.savePreset = async function () {
+  if (ROLE !== "dm") return;
+  const name = document.getElementById("presetSaveName").value.trim();
+  if (!name) { log("⚠ Bitte einen Namen eingeben"); return; }
+
+  // Aktuelle Map-URL holen
+  const { data: mapData } = await db.from("maps")
+    .select("image_url")
+    .eq("game_id", GAME_ID)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const mapUrl = mapData?.[0]?.image_url || null;
+
+  // Aktuelle Tokens als Snapshot speichern (ohne id, damit neue IDs vergeben werden)
+  const tokenSnapshot = tokens.map(t => ({
+    x: t.x, y: t.y, size: t.size,
+    hp_current: t.hp_current, hp_max: t.hp_max,
+    mana_current: t.mana_current, mana_max: t.mana_max,
+    token_type: t.token_type, owner_id: t.owner_id,
+    image_url: t.image_url, status: t.status || null,
+  }));
+
+  const { error } = await db.from("presets").insert({
+    game_id: GAME_ID,
+    name,
+    map_url: mapUrl,
+    tokens: tokenSnapshot,
+  });
+
+  if (error) { log("❌ Fehler: " + error.message); return; }
+  document.getElementById("presetSaveName").value = "";
+  log("💾 Preset gespeichert: " + name);
+};
+
+window.openPresetModal = async function () {
+  if (ROLE !== "dm") return;
+  const list = document.getElementById("presetList");
+  list.innerHTML = "<div class='preset-empty'>Lädt…</div>";
+  document.getElementById("presetModal").style.display = "flex";
+
+  const { data, error } = await db.from("presets")
+    .select("id, name, created_at")
+    .eq("game_id", GAME_ID)
+    .order("created_at", { ascending: false });
+
+  if (error || !data?.length) {
+    list.innerHTML = "<div class='preset-empty'>Keine Presets vorhanden.</div>";
+    return;
+  }
+
+  list.innerHTML = "";
+  data.forEach(p => {
+    const row = document.createElement("div");
+    row.className = "preset-item";
+    const date = new Date(p.created_at).toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
+    row.innerHTML =
+      "<span>" + p.name + " <small style='color:#555'>" + date + "</small></span>";
+    const loadBtn = document.createElement("button");
+    loadBtn.textContent = "▶ Laden";
+    loadBtn.onclick = () => loadPreset(p.id, p.name);
+    const delBtn = document.createElement("button");
+    delBtn.textContent = "🗑";
+    delBtn.className = "danger";
+    delBtn.onclick = () => deletePreset(p.id, row);
+    row.appendChild(loadBtn);
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+};
+
+async function loadPreset(id, name) {
+  if (!confirm(`Preset "${name}" laden? Alle aktuellen Tokens werden ersetzt!`)) return;
+
+  const { data, error } = await db.from("presets")
+    .select("map_url, tokens")
+    .eq("id", id)
+    .single();
+
+  if (error || !data) { log("❌ Preset nicht gefunden"); return; }
+
+  // 1. Alle aktuellen Tokens löschen
+  await db.from("tokens").delete().eq("game_id", GAME_ID);
+
+  // 2. Map setzen falls vorhanden
+  if (data.map_url) {
+    await db.from("maps").insert({ game_id: GAME_ID, image_url: data.map_url });
+  }
+
+  // 3. Tokens neu einfügen
+  if (data.tokens?.length) {
+    const newTokens = data.tokens.map(t => ({ ...t, game_id: GAME_ID }));
+    await db.from("tokens").insert(newTokens);
+  }
+
+  closePresetModal();
+  log("▶ Preset geladen: " + name);
+}
+
+async function deletePreset(id, rowEl) {
+  if (!confirm("Preset löschen?")) return;
+  await db.from("presets").delete().eq("id", id);
+  rowEl.remove();
+  const list = document.getElementById("presetList");
+  if (!list.children.length) list.innerHTML = "<div class='preset-empty'>Keine Presets vorhanden.</div>";
+}
+
+window.closePresetModal = function () {
+  document.getElementById("presetModal").style.display = "none";
+};
+
+}); // DOMContentLoaded
 </script>
-
 </body>
 </html>
